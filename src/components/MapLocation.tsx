@@ -4,16 +4,22 @@ import { Loader } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import mapboxgl from 'mapbox-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
+
+// Initialize Mapbox access token
+mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZS1haS1kZW1vIiwiYSI6ImNsczBiMXZqcTF0ZTgycW9jNjRseDRrdG0ifQ.OUOzd0eGjXyq47C2J_zTQQ';
 
 interface MapLocationProps {
   onLocationUpdate: (latitude: number, longitude: number) => void;
 }
 
 const MapLocation: React.FC<MapLocationProps> = ({ onLocationUpdate }) => {
-  const mapRef = useRef<HTMLDivElement>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const markerRef = useRef<mapboxgl.Marker | null>(null);
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [mapInitialized, setMapInitialized] = useState(false);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationWatchId, setLocationWatchId] = useState<number | null>(null);
 
@@ -41,8 +47,29 @@ const MapLocation: React.FC<MapLocationProps> = ({ onLocationUpdate }) => {
       (position) => {
         const { latitude, longitude } = position.coords;
         console.log("Location update:", latitude, longitude);
-        setLocation({ lat: latitude, lng: longitude });
+        const newLocation = { lat: latitude, lng: longitude };
+        setLocation(newLocation);
         onLocationUpdate(latitude, longitude);
+        
+        // Update map and marker when location changes
+        if (mapRef.current) {
+          mapRef.current.flyTo({
+            center: [longitude, latitude],
+            zoom: 14,
+            speed: 1.5,
+            essential: true
+          });
+
+          // Update or create marker
+          if (markerRef.current) {
+            markerRef.current.setLngLat([longitude, latitude]);
+          } else {
+            markerRef.current = new mapboxgl.Marker({ color: '#FF4A4A' })
+              .setLngLat([longitude, latitude])
+              .addTo(mapRef.current);
+          }
+        }
+        
         setLoading(false);
       },
       (error) => {
@@ -73,26 +100,40 @@ const MapLocation: React.FC<MapLocationProps> = ({ onLocationUpdate }) => {
     setLocationWatchId(watchId);
   };
 
-  // Initialize map once location is available
+  // Initialize map once component mounts
   useEffect(() => {
-    if (location && mapRef.current && !mapInitialized) {
-      // This is a placeholder for map initialization
-      // In a real implementation, you would initialize your map library here
-      const mapElement = mapRef.current;
-      mapElement.innerHTML = `
-        <div class="p-4 text-center bg-gray-100 rounded-lg h-full flex items-center justify-center">
-          <div>
-            <p class="font-medium">Map would display here</p>
-            <p class="text-sm text-gray-500 mt-2">Your location: ${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}</p>
-            <div class="mt-3 bg-green-100 text-green-700 p-2 rounded text-xs">
-              In a production app, this would show an actual map with your location
-            </div>
-          </div>
-        </div>
-      `;
-      setMapInitialized(true);
-    }
-  }, [location, mapInitialized]);
+    if (!mapContainerRef.current || mapRef.current) return;
+    
+    // Create the map instance
+    const map = new mapboxgl.Map({
+      container: mapContainerRef.current,
+      style: 'mapbox://styles/mapbox/streets-v12',
+      center: [0, 0], // Default center, will be updated when location is acquired
+      zoom: 2
+    });
+    
+    // Add navigation controls
+    map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    
+    mapRef.current = map;
+    
+    // Get user location once map is loaded
+    map.on('load', () => {
+      getUserLocation();
+    });
+    
+    // Clean up on unmount
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+      
+      if (markerRef.current) {
+        markerRef.current = null;
+      }
+    };
+  }, []);
 
   // Clean up location watch when component unmounts
   useEffect(() => {
@@ -102,11 +143,6 @@ const MapLocation: React.FC<MapLocationProps> = ({ onLocationUpdate }) => {
       }
     };
   }, [locationWatchId]);
-
-  // Get location when component mounts
-  useEffect(() => {
-    getUserLocation();
-  }, []);
 
   return (
     <Card className="w-full">
@@ -133,21 +169,17 @@ const MapLocation: React.FC<MapLocationProps> = ({ onLocationUpdate }) => {
           </div>
           
           <div 
-            ref={mapRef} 
+            ref={mapContainerRef} 
             className="w-full h-64 bg-gray-100 rounded-md overflow-hidden"
           >
-            {loading ? (
-              <div className="w-full h-full flex items-center justify-center">
+            {loading && !location && (
+              <div className="w-full h-full flex items-center justify-center absolute top-0 left-0 bg-white/80 z-10">
                 <div className="flex flex-col items-center">
                   <Loader className="h-8 w-8 animate-spin text-emergency-red" />
                   <p className="mt-2 text-sm text-gray-500">Detecting your location...</p>
                 </div>
               </div>
-            ) : !location ? (
-              <div className="w-full h-full flex items-center justify-center">
-                <p className="text-gray-500">Location unavailable</p>
-              </div>
-            ) : null}
+            )}
           </div>
           
           {location && (

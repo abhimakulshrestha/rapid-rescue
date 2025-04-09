@@ -4,9 +4,11 @@ import AuthForm from '@/components/AuthForm';
 import Dashboard from './Dashboard';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
   const { user, loading, signIn, signUp, signOut } = useAuth();
+  const navigate = useNavigate();
 
   if (loading) {
     return (
@@ -20,7 +22,11 @@ const Index = () => {
   }
 
   if (user) {
-    return <Dashboard userId={user.id} userName={user.user_metadata?.name || 'User'} onLogout={signOut} />;
+    return <Dashboard 
+      userId={user.id} 
+      userName={user.user_metadata?.name || 'User'} 
+      onLogout={signOut} 
+    />;
   }
 
   return (

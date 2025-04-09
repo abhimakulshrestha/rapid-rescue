@@ -10,6 +10,7 @@ import CallModal from '@/components/CallModal';
 import { getNearbyServices } from '@/services/mockData';
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface DashboardProps {
   userId: string;
@@ -20,6 +21,7 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ userId, userName, onLogout }) => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
   
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [services, setServices] = useState<EmergencyService[]>([]);
@@ -27,6 +29,13 @@ const Dashboard: React.FC<DashboardProps> = ({ userId, userName, onLogout }) => 
   const [isLoading, setIsLoading] = useState(false);
   const [callModalOpen, setCallModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState<EmergencyService | null>(null);
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
 
   // Fetch nearby services when location changes
   useEffect(() => {
@@ -63,14 +72,14 @@ const Dashboard: React.FC<DashboardProps> = ({ userId, userName, onLogout }) => 
   };
 
   const handleConfirmCall = async () => {
-    if (!selectedService || !location) return;
+    if (!selectedService || !location || !user) return;
 
     try {
       // Log the emergency event to Supabase
       const { error } = await supabase
         .from('emergency_events')
         .insert({
-          user_id: userId,
+          user_id: user.id,
           type: selectedService.category,
           service_id: selectedService.id,
           latitude: location.latitude,
@@ -100,9 +109,16 @@ const Dashboard: React.FC<DashboardProps> = ({ userId, userName, onLogout }) => 
     }
   };
 
+  // If not authenticated, don't render anything (will be redirected)
+  if (!user) {
+    return null;
+  }
+
+  const actualUserName = user?.user_metadata?.name || userName || 'User';
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header userName={userName} onLogout={onLogout} />
+      <Header userName={actualUserName} onLogout={signOut} />
       
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
