@@ -9,6 +9,7 @@ import NearbyServices from '@/components/NearbyServices';
 import CallModal from '@/components/CallModal';
 import { getNearbyServices } from '@/services/mockData';
 import { supabase } from '@/integrations/supabase/client';
+import { Database } from '@/integrations/supabase/types';
 
 interface DashboardProps {
   userId: string;
@@ -74,7 +75,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userId, userName, onLogout }) => 
           service_id: selectedService.id,
           latitude: location.latitude,
           longitude: location.longitude
-        });
+        } as Database['public']['Tables']['emergency_events']['Insert']);
 
       if (error) throw error;
 
