@@ -6,10 +6,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader } from 'lucide-react';
 
 interface AuthFormProps {
-  onLogin: (email: string, password: string) => void;
-  onSignup: (name: string, email: string, password: string) => void;
+  onLogin: (email: string, password: string) => Promise<void>;
+  onSignup: (name: string, email: string, password: string) => Promise<void>;
 }
 
 const AuthForm: React.FC<AuthFormProps> = ({ onLogin, onSignup }) => {
@@ -42,13 +43,9 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin, onSignup }) => {
     
     try {
       await onLogin(loginEmail, loginPassword);
-      // Success handling is done in the parent component
+      // Success handling is done in the auth context
     } catch (error) {
-      toast({
-        title: "Login Failed",
-        description: "Please check your credentials and try again",
-        variant: "destructive",
-      });
+      // Error handling is done in the auth context
     } finally {
       setIsLoading(false);
     }
@@ -79,13 +76,9 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin, onSignup }) => {
     
     try {
       await onSignup(signupName, signupEmail, signupPassword);
-      // Success handling is done in the parent component
+      // Success handling is done in the auth context
     } catch (error) {
-      toast({
-        title: "Signup Failed",
-        description: "Please check your information and try again",
-        variant: "destructive",
-      });
+      // Error handling is done in the auth context
     } finally {
       setIsLoading(false);
     }
@@ -132,7 +125,12 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin, onSignup }) => {
               </CardContent>
               <CardFooter>
                 <Button className="w-full bg-emergency-red hover:bg-emergency-red/90" type="submit" disabled={isLoading}>
-                  {isLoading ? "Logging in..." : "Login"}
+                  {isLoading ? (
+                    <>
+                      <Loader className="mr-2 h-4 w-4 animate-spin" />
+                      Logging in...
+                    </>
+                  ) : "Login"}
                 </Button>
               </CardFooter>
             </form>
@@ -187,7 +185,12 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin, onSignup }) => {
               </CardContent>
               <CardFooter>
                 <Button className="w-full bg-emergency-red hover:bg-emergency-red/90" type="submit" disabled={isLoading}>
-                  {isLoading ? "Creating Account..." : "Create Account"}
+                  {isLoading ? (
+                    <>
+                      <Loader className="mr-2 h-4 w-4 animate-spin" />
+                      Creating Account...
+                    </>
+                  ) : "Create Account"}
                 </Button>
               </CardFooter>
             </form>

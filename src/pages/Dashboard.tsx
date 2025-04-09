@@ -7,7 +7,8 @@ import MapLocation from '@/components/MapLocation';
 import EmergencyCategories, { EmergencyService } from '@/components/EmergencyCategories';
 import NearbyServices from '@/components/NearbyServices';
 import CallModal from '@/components/CallModal';
-import { getNearbyServices, logEmergencyEvent } from '@/services/mockData';
+import { getNearbyServices } from '@/services/mockData';
+import { supabase } from '@/integrations/supabase/client';
 
 interface DashboardProps {
   userId: string;
@@ -45,7 +46,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userId, userName, onLogout }) => 
           setIsLoading(false);
         });
     }
-  }, [location]);
+  }, [location, toast]);
 
   const handleLocationUpdate = (latitude: number, longitude: number) => {
     setLocation({ latitude, longitude });
@@ -64,15 +65,18 @@ const Dashboard: React.FC<DashboardProps> = ({ userId, userName, onLogout }) => 
     if (!selectedService || !location) return;
 
     try {
-      // Log the emergency event
-      await logEmergencyEvent({
-        userId,
-        type: selectedService.category,
-        serviceId: selectedService.id,
-        latitude: location.latitude,
-        longitude: location.longitude,
-        timestamp: new Date().toISOString(),
-      });
+      // Log the emergency event to Supabase
+      const { error } = await supabase
+        .from('emergency_events')
+        .insert({
+          user_id: userId,
+          type: selectedService.category,
+          service_id: selectedService.id,
+          latitude: location.latitude,
+          longitude: location.longitude
+        });
+
+      if (error) throw error;
 
       // Close the modal
       setCallModalOpen(false);
@@ -85,11 +89,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userId, userName, onLogout }) => 
 
       // In a real app, you would handle the actual phone call here
       // For demo purposes, we're just showing a toast
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error logging emergency event:', error);
       toast({
         title: "Error",
-        description: "Failed to initiate emergency call",
+        description: error.message || "Failed to initiate emergency call",
         variant: "destructive",
       });
     }

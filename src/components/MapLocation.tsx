@@ -15,6 +15,7 @@ const MapLocation: React.FC<MapLocationProps> = ({ onLocationUpdate }) => {
   const [loading, setLoading] = useState(true);
   const [mapInitialized, setMapInitialized] = useState(false);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationWatchId, setLocationWatchId] = useState<number | null>(null);
 
   // Function to get user's location
   const getUserLocation = () => {
@@ -30,9 +31,16 @@ const MapLocation: React.FC<MapLocationProps> = ({ onLocationUpdate }) => {
       return;
     }
     
-    navigator.geolocation.getCurrentPosition(
+    // Clear any existing watch
+    if (locationWatchId !== null) {
+      navigator.geolocation.clearWatch(locationWatchId);
+    }
+    
+    // Start watching location for real-time updates
+    const watchId = navigator.geolocation.watchPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
+        console.log("Location update:", latitude, longitude);
         setLocation({ lat: latitude, lng: longitude });
         onLocationUpdate(latitude, longitude);
         setLoading(false);
@@ -41,7 +49,7 @@ const MapLocation: React.FC<MapLocationProps> = ({ onLocationUpdate }) => {
         let message = "Unknown error occurred";
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            message = "User denied the request for geolocation";
+            message = "Location access denied. Please enable location services";
             break;
           case error.POSITION_UNAVAILABLE:
             message = "Location information is unavailable";
@@ -61,6 +69,8 @@ const MapLocation: React.FC<MapLocationProps> = ({ onLocationUpdate }) => {
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
+    
+    setLocationWatchId(watchId);
   };
 
   // Initialize map once location is available
@@ -68,19 +78,30 @@ const MapLocation: React.FC<MapLocationProps> = ({ onLocationUpdate }) => {
     if (location && mapRef.current && !mapInitialized) {
       // This is a placeholder for map initialization
       // In a real implementation, you would initialize your map library here
-      // For this example, we'll show a message that a map would be displayed
       const mapElement = mapRef.current;
       mapElement.innerHTML = `
         <div class="p-4 text-center bg-gray-100 rounded-lg h-full flex items-center justify-center">
           <div>
             <p class="font-medium">Map would display here</p>
             <p class="text-sm text-gray-500 mt-2">Your location: ${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}</p>
+            <div class="mt-3 bg-green-100 text-green-700 p-2 rounded text-xs">
+              In a production app, this would show an actual map with your location
+            </div>
           </div>
         </div>
       `;
       setMapInitialized(true);
     }
   }, [location, mapInitialized]);
+
+  // Clean up location watch when component unmounts
+  useEffect(() => {
+    return () => {
+      if (locationWatchId !== null) {
+        navigator.geolocation.clearWatch(locationWatchId);
+      }
+    };
+  }, [locationWatchId]);
 
   // Get location when component mounts
   useEffect(() => {
@@ -136,7 +157,7 @@ const MapLocation: React.FC<MapLocationProps> = ({ onLocationUpdate }) => {
               <p className="mt-2 text-xs">
                 <span className="inline-flex items-center text-green-600">
                   <span className="inline-block w-2 h-2 bg-green-600 rounded-full mr-1"></span>
-                  Location detected successfully
+                  Live location tracking active
                 </span>
               </p>
             </div>
