@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { LogOut, Menu, User, Bell, X, ChevronDown, Shield } from 'lucide-react';
+import { LogOut, Menu, User, Bell, X, ChevronDown, Shield, Settings, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -20,10 +20,17 @@ import { Badge } from '@/components/ui/badge';
 interface HeaderProps {
   userName: string;
   onLogout: () => void;
+  onNavigate: (view: string) => void;
+  currentView: string;
 }
 
-const Header: React.FC<HeaderProps> = ({ userName, onLogout }) => {
+const Header: React.FC<HeaderProps> = ({ userName, onLogout, onNavigate, currentView }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  const handleNavigation = (view: string) => {
+    onNavigate(view);
+    setMobileMenuOpen(false);
+  };
   
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
@@ -37,7 +44,10 @@ const Header: React.FC<HeaderProps> = ({ userName, onLogout }) => {
               {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
             <div className="flex items-center">
-              <h1 className="text-xl font-bold text-emergency-red flex items-center">
+              <h1 
+                className="text-xl font-bold text-emergency-red flex items-center cursor-pointer"
+                onClick={() => handleNavigation('dashboard')}
+              >
                 <div className="mr-2 bg-emergency-red/10 p-1 rounded-full">
                   <Shield className="h-6 w-6 text-emergency-red" />
                 </div>
@@ -81,15 +91,25 @@ const Header: React.FC<HeaderProps> = ({ userName, onLogout }) => {
                   </div>
                   <span className="font-medium">{userName}</span>
                 </div>
-                <DropdownMenuItem className="cursor-pointer focus:bg-gray-100 focus:text-foreground">
+                <DropdownMenuItem 
+                  className="cursor-pointer focus:bg-gray-100 focus:text-foreground"
+                  onClick={() => handleNavigation('profile')}
+                >
                   <User className="h-4 w-4 mr-2" />
                   My Profile
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer focus:bg-gray-100 focus:text-foreground">
-                  <Shield className="h-4 w-4 mr-2" />
+                <DropdownMenuItem 
+                  className="cursor-pointer focus:bg-gray-100 focus:text-foreground"
+                  onClick={() => handleNavigation('contacts')}
+                >
+                  <Users className="h-4 w-4 mr-2" />
                   Emergency Contacts
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer focus:bg-gray-100 focus:text-foreground">
+                <DropdownMenuItem 
+                  className="cursor-pointer focus:bg-gray-100 focus:text-foreground"
+                  onClick={() => handleNavigation('settings')}
+                >
+                  <Settings className="h-4 w-4 mr-2" />
                   Settings
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -110,15 +130,36 @@ const Header: React.FC<HeaderProps> = ({ userName, onLogout }) => {
       {mobileMenuOpen && (
         <div className="md:hidden bg-white border-t border-gray-200 shadow-md">
           <div className="px-4 py-3 space-y-2">
-            <Button variant="ghost" className="w-full justify-start">
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start"
+              onClick={() => handleNavigation('dashboard')}
+            >
+              <Shield className="h-4 w-4 mr-2" />
+              Dashboard
+            </Button>
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start"
+              onClick={() => handleNavigation('profile')}
+            >
               <User className="h-4 w-4 mr-2" />
               My Profile
             </Button>
-            <Button variant="ghost" className="w-full justify-start">
-              <Shield className="h-4 w-4 mr-2" />
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start"
+              onClick={() => handleNavigation('contacts')}
+            >
+              <Users className="h-4 w-4 mr-2" />
               Emergency Contacts
             </Button>
-            <Button variant="ghost" className="w-full justify-start">
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start"
+              onClick={() => handleNavigation('settings')}
+            >
+              <Settings className="h-4 w-4 mr-2" />
               Settings
             </Button>
             <Button 

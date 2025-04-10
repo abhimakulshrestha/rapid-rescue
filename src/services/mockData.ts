@@ -66,11 +66,28 @@ export const getNearbyServices = (
   latitude: number,
   longitude: number
 ): Promise<EmergencyService[]> => {
-  // In a real app, this would filter based on actual coordinates
-  // Here we just return the mock data with a delay to simulate API call
+  // Calculate distances based on coordinates (simplified calculation)
+  const servicesWithUpdatedDistance = mockServices.map(service => {
+    // Simple distance calculation (not accurate but good for demo)
+    const randomDistanceFactor = Math.random() * 0.5 + 0.5; // between 0.5 and 1
+    const calculatedDistance = (Math.abs(Math.sin(latitude) + Math.cos(longitude)) * 2 * randomDistanceFactor).toFixed(1);
+    
+    return {
+      ...service,
+      distance: `${calculatedDistance} miles`
+    };
+  });
+  
+  // Sort by distance
+  servicesWithUpdatedDistance.sort((a, b) => {
+    const distA = parseFloat(a.distance.split(' ')[0]);
+    const distB = parseFloat(b.distance.split(' ')[0]);
+    return distA - distB;
+  });
+  
   return new Promise((resolve) => {
     setTimeout(() => {
-      resolve(mockServices);
+      resolve(servicesWithUpdatedDistance);
     }, 1000);
   });
 };
@@ -124,5 +141,89 @@ export const mockSignup = (name: string, email: string, password: string): Promi
         },
       });
     }, 800);
+  });
+};
+
+// Mock user profile data
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  emergencyContacts?: EmergencyContact[];
+  medicalInfo?: {
+    allergies?: string[];
+    conditions?: string[];
+    medications?: string[];
+    bloodType?: string;
+  };
+  preferences?: {
+    notifications: boolean;
+    locationSharing: boolean;
+    darkMode: boolean;
+  };
+}
+
+export interface EmergencyContact {
+  id: string;
+  name: string;
+  relation: string;
+  phone: string;
+  isICE: boolean; // In Case of Emergency
+}
+
+// Mock user profile
+export const mockUserProfile: UserProfile = {
+  id: "user-123",
+  name: "Demo User",
+  email: "user@gmail.com",
+  phone: "555-123-4567",
+  address: "123 Main St, Anytown, USA",
+  emergencyContacts: [
+    {
+      id: "contact-1",
+      name: "Jane Doe",
+      relation: "Spouse",
+      phone: "555-987-6543",
+      isICE: true,
+    },
+    {
+      id: "contact-2",
+      name: "John Smith",
+      relation: "Parent",
+      phone: "555-456-7890",
+      isICE: false,
+    }
+  ],
+  medicalInfo: {
+    allergies: ["Penicillin", "Peanuts"],
+    conditions: ["Asthma"],
+    medications: ["Albuterol"],
+    bloodType: "O+",
+  },
+  preferences: {
+    notifications: true,
+    locationSharing: true,
+    darkMode: false,
+  }
+};
+
+// Function to get user profile
+export const getUserProfile = (userId: string): Promise<UserProfile> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(mockUserProfile);
+    }, 500);
+  });
+};
+
+// Function to update user profile
+export const updateUserProfile = (profile: Partial<UserProfile>): Promise<UserProfile> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const updatedProfile = { ...mockUserProfile, ...profile };
+      resolve(updatedProfile);
+    }, 500);
   });
 };

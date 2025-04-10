@@ -7,10 +7,21 @@ import MapLocation from '@/components/MapLocation';
 import EmergencyCategories, { EmergencyService } from '@/components/EmergencyCategories';
 import NearbyServices from '@/components/NearbyServices';
 import CallModal from '@/components/CallModal';
-import { getNearbyServices } from '@/services/mockData';
+import Profile from '@/components/Profile';
+import EmergencyContacts from '@/components/EmergencyContacts';
+import Settings from '@/components/Settings';
+import { getNearbyServices, logEmergencyEvent } from '@/services/mockData';
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
+
+// Define view constants for dashboard sections
+const VIEWS = {
+  DASHBOARD: 'dashboard',
+  PROFILE: 'profile',
+  CONTACTS: 'contacts',
+  SETTINGS: 'settings',
+};
 
 const Dashboard = () => {
   const { toast } = useToast();
@@ -23,6 +34,7 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [callModalOpen, setCallModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState<EmergencyService | null>(null);
+  const [currentView, setCurrentView] = useState(VIEWS.DASHBOARD);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -69,18 +81,18 @@ const Dashboard = () => {
     if (!selectedService || !location || !user) return;
 
     try {
-      // Log the emergency event to Supabase
-      const { error } = await supabase
-        .from('emergency_events')
-        .insert({
-          user_id: user.id,
-          type: selectedService.category,
-          service_id: selectedService.id,
-          latitude: location.latitude,
-          longitude: location.longitude
-        } as Database['public']['Tables']['emergency_events']['Insert']);
-
-      if (error) throw error;
+      // Log the emergency event
+      const emergencyEvent = {
+        userId: user.id,
+        type: selectedService.category,
+        serviceId: selectedService.id,
+        latitude: location.latitude,
+        longitude: location.longitude,
+        timestamp: new Date().toISOString(),
+      };
+      
+      // In a real app, this would be saved to a database
+      await logEmergencyEvent(emergencyEvent);
 
       // Close the modal
       setCallModalOpen(false);
@@ -103,38 +115,65 @@ const Dashboard = () => {
     }
   };
 
+  const handleNavigationClick = (view: string) => {
+    setCurrentView(view);
+  };
+
   // If not authenticated, don't render anything (will be redirected)
   if (!user) {
     return null;
   }
 
   const userName = user?.user_metadata?.name || 'User';
+  const userId = user.id;
+
+  // Render appropriate view based on currentView state
+  const renderCurrentView = () => {
+    switch (currentView) {
+      case VIEWS.PROFILE:
+        return <Profile userId={userId} />;
+      case VIEWS.CONTACTS:
+        return <EmergencyContacts userId={userId} />;
+      case VIEWS.SETTINGS:
+        return <Settings userId={userId} />;
+      case VIEWS.DASHBOARD:
+      default:
+        return (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold">Emergency Dashboard</h2>
+              <MapLocation onLocationUpdate={handleLocationUpdate} />
+              <EmergencyCategories 
+                onSelectCategory={handleSelectCategory}
+                onCallService={handleCallService}
+                nearbyServices={services}
+              />
+            </div>
+            
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold lg:opacity-0 hidden lg:block">Nearby Services</h2>
+              <NearbyServices 
+                services={services}
+                selectedCategory={selectedCategory}
+                onCallService={handleCallService}
+              />
+            </div>
+          </div>
+        );
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header userName={userName} onLogout={signOut} />
+      <Header 
+        userName={userName} 
+        onLogout={signOut} 
+        onNavigate={handleNavigationClick}
+        currentView={currentView}
+      />
       
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">Emergency Dashboard</h2>
-            <MapLocation onLocationUpdate={handleLocationUpdate} />
-            <EmergencyCategories 
-              onSelectCategory={handleSelectCategory}
-              onCallService={handleCallService}
-              nearbyServices={services}
-            />
-          </div>
-          
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold lg:opacity-0 hidden lg:block">Nearby Services</h2>
-            <NearbyServices 
-              services={services}
-              selectedCategory={selectedCategory}
-              onCallService={handleCallService}
-            />
-          </div>
-        </div>
+        {renderCurrentView()}
       </main>
       
       <CallModal 
