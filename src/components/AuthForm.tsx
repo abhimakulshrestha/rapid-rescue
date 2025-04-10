@@ -18,8 +18,8 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin, onSignup }) => {
   const [isLoading, setIsLoading] = useState(false);
   
   // Login form state
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
+  const [loginEmail, setLoginEmail] = useState('user@example.com');
+  const [loginPassword, setLoginPassword] = useState('password');
   
   // Signup form state
   const [signupName, setSignupName] = useState('');
@@ -44,8 +44,14 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin, onSignup }) => {
     try {
       await onLogin(loginEmail, loginPassword);
       // Success handling is done in the auth context
-    } catch (error) {
-      // Error handling is done in the auth context
+    } catch (error: any) {
+      console.error("Login error:", error);
+      // Error handling is done in the auth context, but we can add extra here
+      toast({
+        title: "Login Failed",
+        description: "Please use the demo credentials shown below the form",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
