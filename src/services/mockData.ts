@@ -97,12 +97,12 @@ export const mockLogin = (email: string, password: string): Promise<{ user: { id
   return new Promise((resolve, reject) => {
     setTimeout(() => {
       // Simple validation - in a real app this would verify against a database
-      if (email === "user@example.com" && password === "password") {
+      if ((email === "user@example.com" || email === "user@gmail.com") && password === "password") {
         resolve({
           user: {
             id: "user-123",
             name: "Demo User",
-            email: "user@example.com",
+            email: email,
           },
         });
       } else {

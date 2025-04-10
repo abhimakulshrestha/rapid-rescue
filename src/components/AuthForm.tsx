@@ -18,7 +18,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin, onSignup }) => {
   const [isLoading, setIsLoading] = useState(false);
   
   // Login form state
-  const [loginEmail, setLoginEmail] = useState('user@example.com');
+  const [loginEmail, setLoginEmail] = useState('user@gmail.com');
   const [loginPassword, setLoginPassword] = useState('password');
   
   // Signup form state

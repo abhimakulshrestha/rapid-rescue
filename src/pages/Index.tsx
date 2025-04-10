@@ -43,7 +43,7 @@ const Index = () => {
       
       <div className="mt-8 text-center text-sm text-gray-500">
         <p className="font-medium text-base">Please use these demo credentials:</p>
-        <p className="font-mono mt-1">Email: user@example.com</p>
+        <p className="font-mono mt-1">Email: user@gmail.com</p>
         <p className="font-mono">Password: password</p>
         <p className="mt-2 text-xs">Or create a new account using the Sign up tab</p>
       </div>
