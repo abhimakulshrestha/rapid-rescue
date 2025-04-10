@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { useToast } from '@/hooks/use-toast';
+import { mockLogin, mockSignup } from '@/services/mockData';
 
 type AuthContextType = {
   user: User | null;
@@ -22,48 +23,50 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Setup auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (event === 'SIGNED_IN') {
-          toast({
-            title: "Login Successful",
-            description: `Welcome back!`,
-          });
-        } else if (event === 'SIGNED_OUT') {
-          toast({
-            title: "Logged Out",
-            description: "You have been successfully logged out",
-          });
-        }
+    // For demo purposes, we'll just check localStorage
+    const storedUser = localStorage.getItem('demo_user');
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser as User);
+        // Create a fake session for UI purposes
+        setSession({
+          access_token: 'fake-token',
+          refresh_token: 'fake-refresh-token',
+          user: parsedUser as User,
+          expires_at: Date.now() + 3600
+        } as Session);
+      } catch (error) {
+        console.error('Error parsing stored user:', error);
       }
-    );
-
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, [toast]);
+    }
+    setLoading(false);
+  }, []);
 
   const signUp = async (name: string, email: string, password: string) => {
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { name }
-        }
-      });
+      // For demo purposes, use mockSignup instead of Supabase
+      const { user } = await mockSignup(name, email, password);
+      
+      // Store user in localStorage for persistence
+      localStorage.setItem('demo_user', JSON.stringify(user));
+      
+      // Set user state
+      setUser(user as unknown as User);
+      
+      // Create a fake session for UI purposes
+      setSession({
+        access_token: 'fake-token',
+        refresh_token: 'fake-refresh-token',
+        user: user as unknown as User,
+        expires_at: Date.now() + 3600
+      } as Session);
 
-      if (error) throw error;
+      toast({
+        title: "Signup Successful",
+        description: `Welcome, ${name}!`,
+      });
 
     } catch (error: any) {
       toast({
@@ -80,17 +83,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      // For demo purposes, use mockLogin instead of Supabase
+      const { user } = await mockLogin(email, password);
+      
+      // Store user in localStorage for persistence
+      localStorage.setItem('demo_user', JSON.stringify(user));
+      
+      // Set user state
+      setUser(user as unknown as User);
+      
+      // Create a fake session for UI purposes
+      setSession({
+        access_token: 'fake-token',
+        refresh_token: 'fake-refresh-token',
+        user: user as unknown as User,
+        expires_at: Date.now() + 3600
+      } as Session);
+
+      toast({
+        title: "Login Successful",
+        description: `Welcome back!`,
       });
 
-      if (error) throw error;
-
     } catch (error: any) {
+      console.error("Login error:", error);
       toast({
         title: "Login Failed",
-        description: error.message || "Invalid email or password",
+        description: "Please use the demo credentials shown below the form",
         variant: "destructive",
       });
       throw error;
@@ -102,7 +121,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signOut = async () => {
     setLoading(true);
     try {
-      await supabase.auth.signOut();
+      // For demo purposes, just clear localStorage
+      localStorage.removeItem('demo_user');
+      setUser(null);
+      setSession(null);
+      
+      toast({
+        title: "Logged Out",
+        description: "You have been successfully logged out",
+      });
     } catch (error: any) {
       toast({
         title: "Error",
