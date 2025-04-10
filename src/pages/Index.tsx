@@ -1,7 +1,6 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import AuthForm from '@/components/AuthForm';
-import Dashboard from './Dashboard';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -9,6 +8,13 @@ import { useNavigate } from 'react-router-dom';
 const Index = () => {
   const { user, loading, signIn, signUp, signOut } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect to dashboard if already logged in
+  useEffect(() => {
+    if (user && !loading) {
+      navigate('/dashboard');
+    }
+  }, [user, loading, navigate]);
 
   if (loading) {
     return (
@@ -21,12 +27,9 @@ const Index = () => {
     );
   }
 
+  // If user is authenticated, don't render the login form (will be redirected)
   if (user) {
-    return <Dashboard 
-      userId={user.id} 
-      userName={user.user_metadata?.name || 'User'} 
-      onLogout={signOut} 
-    />;
+    return null;
   }
 
   return (

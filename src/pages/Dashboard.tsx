@@ -12,13 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
 
-interface DashboardProps {
-  userId: string;
-  userName: string;
-  onLogout: () => void;
-}
-
-const Dashboard: React.FC<DashboardProps> = ({ userId, userName, onLogout }) => {
+const Dashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
@@ -114,11 +108,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userId, userName, onLogout }) => 
     return null;
   }
 
-  const actualUserName = user?.user_metadata?.name || userName || 'User';
+  const userName = user?.user_metadata?.name || 'User';
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header userName={actualUserName} onLogout={signOut} />
+      <Header userName={userName} onLogout={signOut} />
       
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
