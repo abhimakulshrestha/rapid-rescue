@@ -1,4 +1,3 @@
-
 // Types for emergency services
 export interface EmergencyService {
   id: string;
@@ -6,6 +5,9 @@ export interface EmergencyService {
   name: string;
   phone: string;
   distance: string;
+  vicinity?: string;
+  rating?: number;
+  place_id?: string;
 }
 
 // Type for emergency events

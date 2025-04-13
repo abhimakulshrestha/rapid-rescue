@@ -49,7 +49,7 @@ const MapDisplay: React.FC<MapDisplayProps> = ({ location, loading, onMapReady }
           center={location ? [location.lat, location.lng] : defaultLocation}
           zoom={location ? 14 : zoomLevel}
           style={{ height: '100%', width: '100%' }}
-          whenCreated={onMapReady}
+          whenReady={(map) => onMapReady(map.target)}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

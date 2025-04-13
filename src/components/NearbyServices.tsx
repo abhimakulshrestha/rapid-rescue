@@ -1,9 +1,10 @@
 
 import React, { memo } from 'react';
-import { Building, Clock, MapPin, Phone } from 'lucide-react';
+import { Building, Clock, MapPin, Phone, Star } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { EmergencyService } from '@/types/emergencyTypes';
+import { Badge } from '@/components/ui/badge';
 
 interface NearbyServicesProps {
   services: EmergencyService[];
@@ -51,9 +52,21 @@ const NearbyServices: React.FC<NearbyServicesProps> = ({
             <div className="flex justify-between">
               <div>
                 <h3 className="font-bold text-lg">{service.name}</h3>
+                {service.vicinity && (
+                  <div className="flex items-center text-sm text-gray-500 mt-1">
+                    <MapPin className="h-3 w-3 mr-1" />
+                    <span className="line-clamp-1">{service.vicinity}</span>
+                  </div>
+                )}
                 <div className="flex items-center text-sm text-gray-500 mt-1">
                   <MapPin className="h-3 w-3 mr-1" />
-                  <span>{service.distance ?? "Nearby"}</span>
+                  <span>{service.distance}</span>
+                  {service.rating && (
+                    <div className="flex items-center ml-2">
+                      <Star className="h-3 w-3 text-yellow-500 mr-1" />
+                      <span>{service.rating}</span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center text-sm text-gray-500 mt-1">
                   <Clock className="h-3 w-3 mr-1" />

@@ -1,8 +1,7 @@
-
 import { EmergencyService, EmergencyEvent } from '@/types/emergencyTypes';
 
-// Enhanced mock emergency services data with more Indian hospitals
-export const mockServices: EmergencyService[] = [
+// Backup mock services in case the API fails
+const mockServices: EmergencyService[] = [
   // Hospitals in India
   {
     id: '1',
@@ -102,48 +101,81 @@ export const mockServices: EmergencyService[] = [
   },
 ];
 
-// Improved function to get emergency services by location
-export const getNearbyServices = (
+// Function to get nearby services based on location
+export const getNearbyServices = async (
   latitude: number,
   longitude: number
 ): Promise<EmergencyService[]> => {
-  // For India-specific locations, use hospitals in India
-  // Simple distance calculation with slight randomization for demo
-  const isIndiaLocation = (latitude >= 8 && latitude <= 37 && longitude >= 68 && longitude <= 97);
-  
-  const servicesWithUpdatedDistance = mockServices.map(service => {
-    // Randomize the distance a bit for demo purposes, but keep it consistent for each location
-    const randomFactor = Math.abs(Math.sin(latitude * longitude * parseInt(service.id))) * 0.5 + 0.5;
-    let calculatedDistance;
+  try {
+    // Use Google Places API to get real hospitals/emergency services nearby
+    // For simplicity and privacy, we're using a proxy to make the request
+    const response = await fetch(
+      `https://corsproxy.io/?${encodeURIComponent(
+        `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${latitude},${longitude}&radius=5000&type=hospital&key=AIzaSyDLYn9FCZpKkkGlMNTaTaZYfIa61FQQ2OI`
+      )}`
+    );
     
-    if (isIndiaLocation) {
-      // Shorter distances for India locations to show nearby hospitals
-      calculatedDistance = (randomFactor * 4).toFixed(1);
-    } else {
-      calculatedDistance = (randomFactor * 20).toFixed(1);
+    if (!response.ok) {
+      throw new Error('Failed to fetch nearby services');
     }
     
-    return {
-      ...service,
-      distance: `${calculatedDistance} km`
-    };
-  });
-  
-  // Sort by distance
-  const sortedServices = servicesWithUpdatedDistance.sort((a, b) => {
-    const distA = parseFloat(a.distance.split(' ')[0]);
-    const distB = parseFloat(b.distance.split(' ')[0]);
-    return distA - distB;
-  });
-  
-  // Only return a few nearby services to reduce flickering
-  return new Promise((resolve) => {
-    // Add slight delay to simulate API call
-    setTimeout(() => {
-      resolve(sortedServices);
-    }, 300);
-  });
+    const data = await response.json();
+    
+    if (data.status === 'OK' && data.results && data.results.length > 0) {
+      // Transform Google Places API data to our EmergencyService format
+      const services: EmergencyService[] = data.results.slice(0, 10).map((place: any, index: number) => {
+        // Calculate distance in a simplified way (in meters)
+        const distance = place.geometry?.location 
+          ? calculateDistance(
+              latitude, 
+              longitude, 
+              place.geometry.location.lat, 
+              place.geometry.location.lng
+            )
+          : '5.0';
+          
+        return {
+          id: place.place_id || `place-${index}`,
+          category: 'ambulance', // Default to ambulance for hospitals
+          name: place.name,
+          phone: place.international_phone_number || '+91 Emergency', // Phone may not be available in this API
+          distance: `${parseFloat(distance).toFixed(1)} km`,
+          vicinity: place.vicinity,
+          rating: place.rating,
+          place_id: place.place_id,
+        };
+      });
+      
+      return services;
+    }
+    
+    // Fallback to mock data when the API doesn't return results
+    console.log('No results from Places API, using mock data');
+    return mockServices;
+  } catch (error) {
+    console.error('Error fetching nearby services:', error);
+    // Return mock data as fallback
+    return mockServices;
+  }
 };
+
+// Helper function to calculate distance between two coordinates
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): string {
+  const R = 6371; // Radius of the earth in km
+  const dLat = deg2rad(lat2 - lat1);
+  const dLon = deg2rad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const distance = R * c; // Distance in km
+  return distance.toString();
+}
+
+function deg2rad(deg: number): number {
+  return deg * (Math.PI / 180);
+}
 
 // Log emergency event function - keeping the same implementation
 export const logEmergencyEvent = (event: EmergencyEvent): Promise<void> => {

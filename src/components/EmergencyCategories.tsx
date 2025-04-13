@@ -82,12 +82,13 @@ const EmergencyCategories: React.FC<EmergencyCategoriesProps> = ({
                   id: 'emergency',
                   category: 'emergency',
                   name: 'Emergency Services',
-                  phone: '911',
+                  phone: '112',
+                  distance: 'N/A',
                 };
                 onCallService(emergencyService);
               }}
             >
-              Call 911
+              Call 112
             </Button>
           </div>
         </div>
