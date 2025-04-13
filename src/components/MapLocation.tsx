@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import MapDisplay from '@/components/map/MapDisplay';
-import LocationInfo from '@/components/map/LocationInfo';
+import LocationInfo from '@/components/LocationInfo';
 import { useGeolocation } from '@/hooks/useGeolocation';
 
 // Initialize Mapbox access token
@@ -18,6 +18,8 @@ interface MapLocationProps {
 
 const MapLocation: React.FC<MapLocationProps> = ({ onLocationUpdate }) => {
   const markerRef = useRef<mapboxgl.Marker | null>(null);
+  // Reference to the map instance
+  const mapRef = useRef<mapboxgl.Map | null>(null);
   const { location, loading, startLocationTracking } = useGeolocation();
 
   // Update parent component with location changes
@@ -34,8 +36,8 @@ const MapLocation: React.FC<MapLocationProps> = ({ onLocationUpdate }) => {
 
   // Update map when location changes
   useEffect(() => {
-    if (location && map) {
-      map.flyTo({
+    if (location && mapRef.current) {
+      mapRef.current.flyTo({
         center: [location.lng, location.lat],
         zoom: 14,
         speed: 1.5,
@@ -48,13 +50,10 @@ const MapLocation: React.FC<MapLocationProps> = ({ onLocationUpdate }) => {
       } else {
         markerRef.current = new mapboxgl.Marker({ color: '#FF4A4A' })
           .setLngLat([location.lng, location.lat])
-          .addTo(map);
+          .addTo(mapRef.current);
       }
     }
   }, [location]);
-
-  // Reference to the map instance
-  const mapRef = useRef<mapboxgl.Map | null>(null);
 
   const onMapReadyCallback = (map: mapboxgl.Map) => {
     mapRef.current = map;
