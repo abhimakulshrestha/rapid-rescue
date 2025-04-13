@@ -3,23 +3,20 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Loader } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
 import MapDisplay from '@/components/map/MapDisplay';
 import LocationInfo from '@/components/LocationInfo';
 import { useGeolocation } from '@/hooks/useGeolocation';
-
-// Initialize Mapbox access token
-mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZS1haS1kZW1vIiwiYSI6ImNsczBiMXZqcTF0ZTgycW9jNjRseDRrdG0ifQ.OUOzd0eGjXyq47C2J_zTQQ';
 
 interface MapLocationProps {
   onLocationUpdate: (latitude: number, longitude: number) => void;
 }
 
 const MapLocation: React.FC<MapLocationProps> = ({ onLocationUpdate }) => {
-  const markerRef = useRef<mapboxgl.Marker | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
   // Reference to the map instance
-  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const mapRef = useRef<L.Map | null>(null);
   const { location, loading, startLocationTracking } = useGeolocation();
 
   // Update parent component with location changes - using useCallback to prevent unnecessary renders
@@ -34,36 +31,11 @@ const MapLocation: React.FC<MapLocationProps> = ({ onLocationUpdate }) => {
     updateParentLocation();
   }, [updateParentLocation]);
 
-  const handleMapReady = useCallback((map: mapboxgl.Map) => {
+  const handleMapReady = useCallback((map: L.Map) => {
+    mapRef.current = map;
     // Get user location once map is loaded
     startLocationTracking();
   }, [startLocationTracking]);
-
-  // Update map when location changes - optimized with useCallback
-  useEffect(() => {
-    if (location && mapRef.current) {
-      mapRef.current.flyTo({
-        center: [location.lng, location.lat],
-        zoom: 14,
-        speed: 1.5,
-        essential: true
-      });
-
-      // Update or create marker
-      if (markerRef.current) {
-        markerRef.current.setLngLat([location.lng, location.lat]);
-      } else {
-        markerRef.current = new mapboxgl.Marker({ color: '#FF4A4A' })
-          .setLngLat([location.lng, location.lat])
-          .addTo(mapRef.current);
-      }
-    }
-  }, [location]);
-
-  const onMapReadyCallback = useCallback((map: mapboxgl.Map) => {
-    mapRef.current = map;
-    handleMapReady(map);
-  }, [handleMapReady]);
 
   return (
     <Card className="w-full">
@@ -92,7 +64,7 @@ const MapLocation: React.FC<MapLocationProps> = ({ onLocationUpdate }) => {
           <MapDisplay 
             location={location} 
             loading={loading} 
-            onMapReady={onMapReadyCallback} 
+            onMapReady={handleMapReady} 
           />
           
           <LocationInfo location={location} />

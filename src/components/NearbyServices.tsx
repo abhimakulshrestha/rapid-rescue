@@ -53,7 +53,7 @@ const NearbyServices: React.FC<NearbyServicesProps> = ({
                 <h3 className="font-bold text-lg">{service.name}</h3>
                 <div className="flex items-center text-sm text-gray-500 mt-1">
                   <MapPin className="h-3 w-3 mr-1" />
-                  <span>{service.distance ? `${service.distance} away` : "Nearby"}</span>
+                  <span>{service.distance ?? "Nearby"}</span>
                 </div>
                 <div className="flex items-center text-sm text-gray-500 mt-1">
                   <Clock className="h-3 w-3 mr-1" />
