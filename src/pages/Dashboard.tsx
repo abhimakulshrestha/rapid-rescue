@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
@@ -10,7 +10,7 @@ import CallModal from '@/components/CallModal';
 import Profile from '@/components/Profile';
 import EmergencyContacts from '@/components/EmergencyContacts';
 import Settings from '@/components/Settings';
-import { getNearbyServices, logEmergencyEvent } from '@/services/mockData';
+import { getNearbyServices, logEmergencyEvent } from '@/services/emergencyServices';
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -43,41 +43,58 @@ const Dashboard = () => {
     }
   }, [user, navigate]);
 
-  // Fetch nearby services when location changes
-  useEffect(() => {
-    if (location) {
-      setIsLoading(true);
-      getNearbyServices(location.latitude, location.longitude)
-        .then((data) => {
-          setServices(data);
-          setIsLoading(false);
-        })
-        .catch((error) => {
-          console.error('Error fetching services:', error);
-          toast({
-            title: "Error",
-            description: "Failed to fetch nearby services",
-            variant: "destructive",
-          });
-          setIsLoading(false);
-        });
+  // Debounced fetch to prevent flickering
+  const fetchNearbyServices = useCallback(async () => {
+    if (!location) return;
+    
+    setIsLoading(true);
+    try {
+      const data = await getNearbyServices(location.latitude, location.longitude);
+      setServices(data);
+    } catch (error) {
+      console.error('Error fetching services:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch nearby services",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   }, [location, toast]);
 
-  const handleLocationUpdate = (latitude: number, longitude: number) => {
-    setLocation({ latitude, longitude });
-  };
+  // Fetch nearby services when location changes - with debounce
+  useEffect(() => {
+    if (location) {
+      // Adding a small timeout to avoid rapid consecutive fetches
+      const timerId = setTimeout(() => {
+        fetchNearbyServices();
+      }, 300);
+      
+      return () => clearTimeout(timerId);
+    }
+  }, [location, fetchNearbyServices]);
 
-  const handleSelectCategory = (category: string) => {
+  const handleLocationUpdate = useCallback((latitude: number, longitude: number) => {
+    setLocation(prev => {
+      // Only update if location actually changed (reduces flickering)
+      if (!prev || prev.latitude !== latitude || prev.longitude !== longitude) {
+        return { latitude, longitude };
+      }
+      return prev;
+    });
+  }, []);
+
+  const handleSelectCategory = useCallback((category: string) => {
     setSelectedCategory(category);
-  };
+  }, []);
 
-  const handleCallService = (service: EmergencyService) => {
+  const handleCallService = useCallback((service: EmergencyService) => {
     setSelectedService(service);
     setCallModalOpen(true);
-  };
+  }, []);
 
-  const handleConfirmCall = async () => {
+  const handleConfirmCall = useCallback(async () => {
     if (!selectedService || !location || !user) return;
 
     try {
@@ -113,11 +130,11 @@ const Dashboard = () => {
         variant: "destructive",
       });
     }
-  };
+  }, [selectedService, location, user, toast]);
 
-  const handleNavigationClick = (view: string) => {
+  const handleNavigationClick = useCallback((view: string) => {
     setCurrentView(view);
-  };
+  }, []);
 
   // If not authenticated, don't render anything (will be redirected)
   if (!user) {
@@ -126,6 +143,30 @@ const Dashboard = () => {
 
   const userName = user?.user_metadata?.name || 'User';
   const userId = user.id;
+
+  // Memoize the dashboard view to reduce re-renders
+  const dashboardView = useMemo(() => (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="space-y-6">
+        <h2 className="text-2xl font-bold">Emergency Dashboard</h2>
+        <MapLocation onLocationUpdate={handleLocationUpdate} />
+        <EmergencyCategories 
+          onSelectCategory={handleSelectCategory}
+          onCallService={handleCallService}
+          nearbyServices={services}
+        />
+      </div>
+      
+      <div className="space-y-6">
+        <h2 className="text-2xl font-bold lg:opacity-0 hidden lg:block">Nearby Services</h2>
+        <NearbyServices 
+          services={services}
+          selectedCategory={selectedCategory}
+          onCallService={handleCallService}
+        />
+      </div>
+    </div>
+  ), [services, selectedCategory, handleLocationUpdate, handleSelectCategory, handleCallService]);
 
   // Render appropriate view based on currentView state
   const renderCurrentView = () => {
@@ -138,28 +179,7 @@ const Dashboard = () => {
         return <Settings userId={userId} />;
       case VIEWS.DASHBOARD:
       default:
-        return (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold">Emergency Dashboard</h2>
-              <MapLocation onLocationUpdate={handleLocationUpdate} />
-              <EmergencyCategories 
-                onSelectCategory={handleSelectCategory}
-                onCallService={handleCallService}
-                nearbyServices={services}
-              />
-            </div>
-            
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold lg:opacity-0 hidden lg:block">Nearby Services</h2>
-              <NearbyServices 
-                services={services}
-                selectedCategory={selectedCategory}
-                onCallService={handleCallService}
-              />
-            </div>
-          </div>
-        );
+        return dashboardView;
     }
   };
 

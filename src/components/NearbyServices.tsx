@@ -1,9 +1,9 @@
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Building, Clock, MapPin, Phone } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { EmergencyService } from './EmergencyCategories';
+import { EmergencyService } from '@/types/emergencyTypes';
 
 interface NearbyServicesProps {
   services: EmergencyService[];
@@ -84,4 +84,5 @@ const NearbyServices: React.FC<NearbyServicesProps> = ({
   );
 };
 
-export default NearbyServices;
+// Use React.memo to prevent unnecessary re-renders
+export default memo(NearbyServices);

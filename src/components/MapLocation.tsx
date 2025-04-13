@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Loader } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,19 +22,24 @@ const MapLocation: React.FC<MapLocationProps> = ({ onLocationUpdate }) => {
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const { location, loading, startLocationTracking } = useGeolocation();
 
-  // Update parent component with location changes
-  useEffect(() => {
+  // Update parent component with location changes - using useCallback to prevent unnecessary renders
+  const updateParentLocation = useCallback(() => {
     if (location) {
       onLocationUpdate(location.lat, location.lng);
     }
   }, [location, onLocationUpdate]);
 
-  const handleMapReady = (map: mapboxgl.Map) => {
+  // Use effect with callback dependency
+  useEffect(() => {
+    updateParentLocation();
+  }, [updateParentLocation]);
+
+  const handleMapReady = useCallback((map: mapboxgl.Map) => {
     // Get user location once map is loaded
     startLocationTracking();
-  };
+  }, [startLocationTracking]);
 
-  // Update map when location changes
+  // Update map when location changes - optimized with useCallback
   useEffect(() => {
     if (location && mapRef.current) {
       mapRef.current.flyTo({
@@ -55,10 +60,10 @@ const MapLocation: React.FC<MapLocationProps> = ({ onLocationUpdate }) => {
     }
   }, [location]);
 
-  const onMapReadyCallback = (map: mapboxgl.Map) => {
+  const onMapReadyCallback = useCallback((map: mapboxgl.Map) => {
     mapRef.current = map;
     handleMapReady(map);
-  };
+  }, [handleMapReady]);
 
   return (
     <Card className="w-full">

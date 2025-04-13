@@ -1,98 +1,127 @@
-
 import { EmergencyService, EmergencyEvent } from '@/types/emergencyTypes';
 
-// Mock emergency services data
+// Mock emergency services data with Indian hospitals
 export const mockServices: EmergencyService[] = [
+  // Hospitals in India
   {
     id: '1',
     category: 'ambulance',
-    name: 'City General Hospital',
-    phone: '555-123-4567',
-    distance: '0.8 miles',
+    name: 'AIIMS Hospital Delhi',
+    phone: '011-2658-8500',
+    distance: '2.3 km',
   },
   {
     id: '2',
     category: 'ambulance',
-    name: 'St. Mary\'s Medical Center',
-    phone: '555-234-5678',
-    distance: '1.2 miles',
+    name: 'Fortis Hospital',
+    phone: '011-4277-6222',
+    distance: '3.5 km',
   },
   {
     id: '3',
-    category: 'police',
-    name: 'Downtown Police Station',
-    phone: '555-345-6789',
-    distance: '0.5 miles',
+    category: 'ambulance',
+    name: 'Apollo Hospitals',
+    phone: '1860-500-1066',
+    distance: '4.2 km',
   },
   {
     id: '4',
-    category: 'police',
-    name: 'Westside Police Department',
-    phone: '555-456-7890',
-    distance: '1.7 miles',
+    category: 'ambulance',
+    name: 'Max Super Speciality Hospital',
+    phone: '011-4055-4055',
+    distance: '5.1 km',
   },
   {
     id: '5',
-    category: 'fire',
-    name: 'Central Fire Station',
-    phone: '555-567-8901',
-    distance: '1.1 miles',
+    category: 'ambulance',
+    name: 'Medanta - The Medicity',
+    phone: '0124-441-4141',
+    distance: '8.7 km',
   },
+  // Police stations in India
   {
     id: '6',
-    category: 'fire',
-    name: 'North District Fire Department',
-    phone: '555-678-9012',
-    distance: '2.3 miles',
+    category: 'police',
+    name: 'Delhi Police Headquarters',
+    phone: '100',
+    distance: '3.2 km',
   },
   {
     id: '7',
-    category: 'electric',
-    name: 'City Power & Electric Co.',
-    phone: '555-789-0123',
-    distance: '1.5 miles',
+    category: 'police',
+    name: 'Local Police Station',
+    phone: '112',
+    distance: '1.8 km',
   },
+  // Fire stations
   {
     id: '8',
+    category: 'fire',
+    name: 'Delhi Fire Service',
+    phone: '101',
+    distance: '4.5 km',
+  },
+  // Electricity emergency
+  {
+    id: '9',
+    category: 'electric',
+    name: 'BSES Rajdhani Power Ltd',
+    phone: '1800-419-3333',
+    distance: '5.3 km',
+  },
+  // Other emergency services
+  {
+    id: '10',
     category: 'other',
-    name: 'Emergency Management Office',
-    phone: '555-890-1234',
-    distance: '0.9 miles',
+    name: 'Disaster Management Authority',
+    phone: '1077',
+    distance: '6.1 km',
   },
 ];
 
-// Mock function to get emergency services by location
+// Improved function to get emergency services by location
 export const getNearbyServices = (
   latitude: number,
   longitude: number
 ): Promise<EmergencyService[]> => {
-  // Calculate distances based on coordinates (simplified calculation)
+  // For India-specific locations, use hospitals in India
+  // Simple distance calculation with slight randomization for demo
+  const isIndiaLocation = (latitude >= 8 && latitude <= 37 && longitude >= 68 && longitude <= 97);
+  
   const servicesWithUpdatedDistance = mockServices.map(service => {
-    // Simple distance calculation (not accurate but good for demo)
-    const randomDistanceFactor = Math.random() * 0.5 + 0.5; // between 0.5 and 1
-    const calculatedDistance = (Math.abs(Math.sin(latitude) + Math.cos(longitude)) * 2 * randomDistanceFactor).toFixed(1);
+    // Randomize the distance a bit for demo purposes, but keep it consistent for each location
+    const randomFactor = Math.abs(Math.sin(latitude * longitude * parseInt(service.id))) * 0.5 + 0.5;
+    let calculatedDistance;
+    
+    if (isIndiaLocation) {
+      // Shorter distances for India locations to show nearby hospitals
+      calculatedDistance = (randomFactor * 10).toFixed(1);
+    } else {
+      calculatedDistance = (randomFactor * 20).toFixed(1);
+    }
     
     return {
       ...service,
-      distance: `${calculatedDistance} miles`
+      distance: `${calculatedDistance} km`
     };
   });
   
   // Sort by distance
-  servicesWithUpdatedDistance.sort((a, b) => {
+  const sortedServices = servicesWithUpdatedDistance.sort((a, b) => {
     const distA = parseFloat(a.distance.split(' ')[0]);
     const distB = parseFloat(b.distance.split(' ')[0]);
     return distA - distB;
   });
   
   return new Promise((resolve) => {
+    // Add slight delay to simulate API call but avoid flickering
     setTimeout(() => {
-      resolve(servicesWithUpdatedDistance);
-    }, 1000);
+      resolve(sortedServices);
+    }, 500);
   });
 };
 
-// Mock function to log emergency event
+// Log emergency event function - keeping the same implementation
 export const logEmergencyEvent = (event: EmergencyEvent): Promise<void> => {
   // In a real app, this would send the event to a backend API
   // Here we just log to console and return a resolved promise
