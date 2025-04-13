@@ -1,17 +1,11 @@
-
 import React from 'react';
 import { AlertCircle, Stethoscope, Shield, Flame, Zap, Phone } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { EmergencyService as EmergencyServiceType } from '@/types/emergencyTypes';
 
-export interface EmergencyService {
-  id: string;
-  category: string;
-  name: string;
-  phone: string;
-  distance?: string;
-}
+export type EmergencyService = EmergencyServiceType;
 
 interface EmergencyCategoriesProps {
   onSelectCategory: (category: string) => void;
