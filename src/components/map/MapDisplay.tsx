@@ -37,17 +37,21 @@ const MapUpdater = ({ location }: { location: { lat: number; lng: number } | nul
   return null;
 };
 
+// Component to handle map initialization
+const MapInitializer = ({ onMapReady }: { onMapReady: (map: L.Map) => void }) => {
+  const map = useMap();
+  
+  useEffect(() => {
+    onMapReady(map);
+  }, [map, onMapReady]);
+  
+  return null;
+};
+
 const MapDisplay: React.FC<MapDisplayProps> = ({ location, loading, onMapReady }) => {
   // Default location (centered on India)
   const defaultLocation: [number, number] = [20.5937, 78.9629];
   const zoomLevel = 5;
-
-  // Use a ref callback to handle map initialization
-  const mapRef = useCallback((node: L.Map | null) => {
-    if (node !== null) {
-      onMapReady(node);
-    }
-  }, [onMapReady]);
 
   return (
     <div className="w-full h-64 bg-gray-100 rounded-md overflow-hidden relative">
@@ -56,7 +60,6 @@ const MapDisplay: React.FC<MapDisplayProps> = ({ location, loading, onMapReady }
           center={location ? [location.lat, location.lng] : defaultLocation}
           zoom={location ? 14 : zoomLevel}
           style={{ height: '100%', width: '100%' }}
-          ref={mapRef}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -67,6 +70,9 @@ const MapDisplay: React.FC<MapDisplayProps> = ({ location, loading, onMapReady }
           
           {/* Map updater component to handle location changes */}
           <MapUpdater location={location} />
+          
+          {/* Map initializer component to handle map ready event */}
+          <MapInitializer onMapReady={onMapReady} />
         </MapContainer>
       ) : null}
       
