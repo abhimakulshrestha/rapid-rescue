@@ -42,6 +42,11 @@ const MapDisplay: React.FC<MapDisplayProps> = ({ location, loading, onMapReady }
   const defaultLocation: [number, number] = [20.5937, 78.9629];
   const zoomLevel = 5;
 
+  // Create a wrapper function that will be passed to whenReady
+  const handleMapReady = (mapInstance: L.Map) => {
+    onMapReady(mapInstance);
+  };
+
   return (
     <div className="w-full h-64 bg-gray-100 rounded-md overflow-hidden relative">
       {location || !loading ? (
@@ -49,7 +54,7 @@ const MapDisplay: React.FC<MapDisplayProps> = ({ location, loading, onMapReady }
           center={location ? [location.lat, location.lng] : defaultLocation}
           zoom={location ? 14 : zoomLevel}
           style={{ height: '100%', width: '100%' }}
-          whenReady={(map) => onMapReady(map.target)}
+          whenReady={(event) => handleMapReady(event.target)}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
