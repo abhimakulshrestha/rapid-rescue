@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
@@ -10,7 +9,7 @@ import CallModal from '@/components/CallModal';
 import Profile from '@/components/Profile';
 import EmergencyContacts from '@/components/EmergencyContacts';
 import Settings from '@/components/Settings';
-import { getNearbyServices, logEmergencyEvent } from '@/services/emergencyServices';
+import { getNearbyServices, logEmergencyEvent, initiatePhoneCall } from '@/services/emergencyServices';
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -36,14 +35,12 @@ const Dashboard = () => {
   const [selectedService, setSelectedService] = useState<EmergencyService | null>(null);
   const [currentView, setCurrentView] = useState(VIEWS.DASHBOARD);
 
-  // Redirect if not authenticated
   useEffect(() => {
     if (!user) {
       navigate('/');
     }
   }, [user, navigate]);
 
-  // Debounced fetch to prevent flickering
   const fetchNearbyServices = useCallback(async () => {
     if (!location) return;
     
@@ -63,10 +60,8 @@ const Dashboard = () => {
     }
   }, [location, toast]);
 
-  // Fetch nearby services when location changes - with debounce
   useEffect(() => {
     if (location) {
-      // Adding a small timeout to avoid rapid consecutive fetches
       const timerId = setTimeout(() => {
         fetchNearbyServices();
       }, 300);
@@ -77,7 +72,6 @@ const Dashboard = () => {
 
   const handleLocationUpdate = useCallback((latitude: number, longitude: number) => {
     setLocation(prev => {
-      // Only update if location actually changed (reduces flickering)
       if (!prev || prev.latitude !== latitude || prev.longitude !== longitude) {
         return { latitude, longitude };
       }
@@ -98,7 +92,6 @@ const Dashboard = () => {
     if (!selectedService || !location || !user) return;
 
     try {
-      // Log the emergency event
       const emergencyEvent = {
         userId: user.id,
         type: selectedService.category,
@@ -108,20 +101,16 @@ const Dashboard = () => {
         timestamp: new Date().toISOString(),
       };
       
-      // In a real app, this would be saved to a database
       await logEmergencyEvent(emergencyEvent);
 
-      // Close the modal
       setCallModalOpen(false);
 
-      // Show success toast
       toast({
         title: "Emergency Call Initiated",
         description: `Connecting to ${selectedService.name} (${selectedService.phone})`,
       });
 
-      // In a real app, you would handle the actual phone call here
-      // For demo purposes, we're just showing a toast
+      await initiatePhoneCall(selectedService.phone);
     } catch (error: any) {
       console.error('Error logging emergency event:', error);
       toast({
@@ -136,7 +125,6 @@ const Dashboard = () => {
     setCurrentView(view);
   }, []);
 
-  // If not authenticated, don't render anything (will be redirected)
   if (!user) {
     return null;
   }
@@ -144,7 +132,6 @@ const Dashboard = () => {
   const userName = user?.user_metadata?.name || 'User';
   const userId = user.id;
 
-  // Memoize the dashboard view to reduce re-renders
   const dashboardView = useMemo(() => (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <div className="space-y-6">
@@ -168,7 +155,6 @@ const Dashboard = () => {
     </div>
   ), [services, selectedCategory, handleLocationUpdate, handleSelectCategory, handleCallService]);
 
-  // Render appropriate view based on currentView state
   const renderCurrentView = () => {
     switch (currentView) {
       case VIEWS.PROFILE:

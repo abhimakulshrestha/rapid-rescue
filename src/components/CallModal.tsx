@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Phone, X, Shield, AlertCircle } from 'lucide-react';
+import { Phone, X, Shield, AlertCircle, MapPin, Globe, Clock } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Toggle } from '@/components/ui/toggle';
 import { Badge } from '@/components/ui/badge';
-import { EmergencyService } from './EmergencyCategories';
+import { Separator } from '@/components/ui/separator';
+import { EmergencyService } from '@/types/emergencyTypes';
+import { initiatePhoneCall } from '@/services/emergencyServices';
 
 interface CallModalProps {
   isOpen: boolean;
@@ -38,7 +40,12 @@ const CallModal: React.FC<CallModalProps> = ({
       return;
     }
     
+    // Call the actual service
+    initiatePhoneCall(service.phone);
+    
+    // Also call the onConfirmCall handler for logging
     onConfirmCall();
+    
     // Reset states after call is confirmed
     setConfirmationStep(false);
     setIsPriority(false);
@@ -80,11 +87,34 @@ const CallModal: React.FC<CallModalProps> = ({
           <h2 className="text-xl font-bold">{service.name}</h2>
           <p className="text-2xl font-bold mt-2">{service.phone}</p>
           
+          {!confirmationStep && service.vicinity && (
+            <div className="mt-2 flex items-center text-gray-600">
+              <MapPin className="h-4 w-4 mr-1" />
+              <span className="text-sm">{service.vicinity}</span>
+            </div>
+          )}
+          
+          {!confirmationStep && service.open_now !== undefined && (
+            <div className="mt-1 flex items-center text-gray-600">
+              <Clock className="h-4 w-4 mr-1" />
+              <span className="text-sm">{service.open_now ? "Open now" : "Closed"}</span>
+            </div>
+          )}
+
+          {!confirmationStep && service.website && (
+            <div className="mt-1 flex items-center text-gray-600">
+              <Globe className="h-4 w-4 mr-1" />
+              <a href={service.website} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-500 hover:underline truncate max-w-[200px]">
+                {service.website.replace(/^https?:\/\//, '')}
+              </a>
+            </div>
+          )}
+          
           {confirmationStep && (
             <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-md flex items-center">
               <AlertCircle className="h-5 w-5 text-orange-500 mr-2 flex-shrink-0" />
               <p className="text-sm text-orange-700">
-                This will initiate a real emergency call. Only proceed if you have a genuine emergency.
+                This will initiate a real phone call to {service.name}. Only proceed if you have a genuine emergency.
               </p>
             </div>
           )}
@@ -105,7 +135,9 @@ const CallModal: React.FC<CallModalProps> = ({
           )}
         </div>
         
-        <DialogFooter className="flex sm:flex-row flex-col gap-2">
+        <Separator />
+        
+        <DialogFooter className="flex sm:flex-row flex-col gap-2 mt-2">
           <Button 
             variant="outline" 
             onClick={handleClose} 
@@ -123,7 +155,7 @@ const CallModal: React.FC<CallModalProps> = ({
             }`}
           >
             <Phone className="mr-2 h-4 w-4" />
-            {confirmationStep ? "Confirm Call" : "Call Now"}
+            {confirmationStep ? "Call Now" : "Continue"}
           </Button>
         </DialogFooter>
       </DialogContent>

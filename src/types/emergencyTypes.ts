@@ -1,3 +1,4 @@
+
 // Types for emergency services
 export interface EmergencyService {
   id: string;
@@ -9,6 +10,10 @@ export interface EmergencyService {
   rating?: number;
   place_id?: string;
   open_now?: boolean;
+  formatted_phone_number?: string;
+  international_phone_number?: string;
+  website?: string;
+  address?: string;
 }
 
 // Type for emergency events

@@ -1,4 +1,3 @@
-
 import { EmergencyService, EmergencyEvent } from '@/types/emergencyTypes';
 
 // Backup mock services in case the API fails
@@ -10,34 +9,6 @@ const mockServices: EmergencyService[] = [
     name: 'AIIMS Hospital Delhi',
     phone: '011-2658-8500',
     distance: '2.3 km',
-  },
-  {
-    id: '2',
-    category: 'ambulance',
-    name: 'Fortis Hospital',
-    phone: '011-4277-6222',
-    distance: '3.5 km',
-  },
-  {
-    id: '3',
-    category: 'ambulance',
-    name: 'Apollo Hospitals',
-    phone: '1860-500-1066',
-    distance: '4.2 km',
-  },
-  {
-    id: '4',
-    category: 'ambulance',
-    name: 'Max Super Speciality Hospital',
-    phone: '011-4055-4055',
-    distance: '5.1 km',
-  },
-  {
-    id: '5',
-    category: 'ambulance',
-    name: 'Medanta - The Medicity',
-    phone: '0124-441-4141',
-    distance: '8.7 km',
   },
   // Additional Indian hospitals
   {
@@ -130,7 +101,7 @@ export const getNearbyServices = async (
       
       if (data.status === 'OK' && data.results && data.results.length > 0) {
         // Transform Google Places API data to our EmergencyService format
-        return data.results.slice(0, 5).map((place: any) => {
+        return Promise.all(data.results.slice(0, 5).map(async (place: any) => {
           // Calculate distance in a simplified way (in km)
           const distance = place.geometry?.location 
             ? calculateDistance(
@@ -153,22 +124,61 @@ export const getNearbyServices = async (
             case 'fire_station':
               category = 'fire';
               break;
+            case 'pharmacy':
+              category = 'other';
+              break;
             default:
               category = 'other';
+          }
+          
+          // Get additional place details using place_id
+          let phoneNumber = '';
+          let formattedPhoneNumber = '';
+          let internationalPhoneNumber = '';
+          let website = '';
+          let address = place.vicinity || '';
+          
+          if (place.place_id) {
+            try {
+              const detailsResponse = await fetch(
+                `https://corsproxy.io/?${encodeURIComponent(
+                  `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=formatted_phone_number,international_phone_number,website,formatted_address&key=AIzaSyDLYn9FCZpKkkGlMNTaTaZYfIa61FQQ2OI`
+                )}`
+              );
+              
+              if (detailsResponse.ok) {
+                const detailsData = await detailsResponse.json();
+                if (detailsData.status === 'OK' && detailsData.result) {
+                  formattedPhoneNumber = detailsData.result.formatted_phone_number || '';
+                  internationalPhoneNumber = detailsData.result.international_phone_number || '';
+                  website = detailsData.result.website || '';
+                  address = detailsData.result.formatted_address || address;
+                  
+                  // Use any available phone number
+                  phoneNumber = internationalPhoneNumber || formattedPhoneNumber;
+                }
+              }
+            } catch (error) {
+              console.error('Error fetching place details:', error);
+            }
           }
             
           return {
             id: place.place_id || `place-${Math.random().toString(36).substring(2, 9)}`,
             category: category,
             name: place.name,
-            phone: place.international_phone_number || getEmergencyNumberByCategory(category),
+            phone: phoneNumber || getEmergencyNumberByCategory(category), // Fallback to emergency number
             distance: `${parseFloat(distance).toFixed(1)} km`,
             vicinity: place.vicinity,
             rating: place.rating,
             place_id: place.place_id,
             open_now: place.opening_hours?.open_now,
+            formatted_phone_number: formattedPhoneNumber,
+            international_phone_number: internationalPhoneNumber, 
+            website: website,
+            address: address
           };
-        });
+        }));
       }
       return [];
     });
@@ -229,8 +239,22 @@ function deg2rad(deg: number): number {
 
 // Log emergency event function
 export const logEmergencyEvent = (event: EmergencyEvent): Promise<void> => {
-  // In a real app, this would send the event to a backend API
-  // Here we just log to console and return a resolved promise
   console.log('Emergency event logged:', event);
   return Promise.resolve();
+};
+
+// Function to actually initiate a phone call
+export const initiatePhoneCall = (phoneNumber: string): void => {
+  if (!phoneNumber) {
+    console.error('No phone number provided');
+    return;
+  }
+  
+  // Remove any non-numeric characters from the phone number
+  const cleanNumber = phoneNumber.replace(/\D/g, '');
+  
+  // Use the tel: protocol to initiate a call
+  window.location.href = `tel:${cleanNumber}`;
+  
+  console.log(`Initiating call to: ${cleanNumber}`);
 };
