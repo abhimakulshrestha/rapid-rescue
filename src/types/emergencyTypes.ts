@@ -8,6 +8,7 @@ export interface EmergencyService {
   vicinity?: string;
   rating?: number;
   place_id?: string;
+  open_now?: boolean;
 }
 
 // Type for emergency events
