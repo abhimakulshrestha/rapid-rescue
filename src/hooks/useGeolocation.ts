@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 interface GeolocationState {
@@ -23,7 +23,66 @@ export function useGeolocation(): UseGeolocationReturn {
     watchId: null
   });
 
-  const startLocationTracking = () => {
+  // Use useCallback to memoize functions that will be used in dependency arrays
+  const handleLocationError = useCallback((error: GeolocationPositionError) => {
+    let message = "Unknown error occurred";
+    switch (error.code) {
+      case error.PERMISSION_DENIED:
+        message = "Location access denied. Please enable location services in your browser settings";
+        break;
+      case error.POSITION_UNAVAILABLE:
+        message = "Location information is unavailable";
+        break;
+      case error.TIMEOUT:
+        message = "The request to get user location timed out";
+        break;
+    }
+    
+    toast({
+      title: "Location Error",
+      description: message,
+      variant: "destructive",
+    });
+    
+    setState(prev => ({
+      ...prev,
+      loading: false,
+      error: message
+    }));
+  }, [toast]);
+  
+  const startWatchingPosition = useCallback(() => {
+    // Start watching location for real-time updates
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        console.log("Location update:", latitude, longitude);
+        setState(prev => ({
+          ...prev,
+          location: { lat: latitude, lng: longitude },
+          loading: false,
+          error: null
+        }));
+      },
+      (error) => {
+        handleLocationError(error);
+      },
+      { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 }
+    );
+    
+    setState(prev => ({ ...prev, watchId }));
+  }, [handleLocationError]);
+
+  // Memoize the stopLocationTracking function
+  const stopLocationTracking = useCallback(() => {
+    if (state.watchId !== null) {
+      navigator.geolocation.clearWatch(state.watchId);
+      setState(prev => ({ ...prev, watchId: null }));
+    }
+  }, [state.watchId]);
+
+  // Memoize the startLocationTracking function
+  const startLocationTracking = useCallback(() => {
     setState(prev => ({ ...prev, loading: true, error: null }));
     
     if (!navigator.geolocation) {
@@ -65,75 +124,22 @@ export function useGeolocation(): UseGeolocationReturn {
       (error) => {
         handleLocationError(error);
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 }
     );
-  };
-  
-  const startWatchingPosition = () => {
-    // Start watching location for real-time updates
-    const watchId = navigator.geolocation.watchPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        console.log("Location update:", latitude, longitude);
-        setState(prev => ({
-          ...prev,
-          location: { lat: latitude, lng: longitude },
-          loading: false,
-          error: null
-        }));
-      },
-      (error) => {
-        handleLocationError(error);
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-    );
-    
-    setState(prev => ({ ...prev, watchId }));
-  };
-  
-  const handleLocationError = (error: GeolocationPositionError) => {
-    let message = "Unknown error occurred";
-    switch (error.code) {
-      case error.PERMISSION_DENIED:
-        message = "Location access denied. Please enable location services in your browser settings";
-        break;
-      case error.POSITION_UNAVAILABLE:
-        message = "Location information is unavailable";
-        break;
-      case error.TIMEOUT:
-        message = "The request to get user location timed out";
-        break;
-    }
-    
-    toast({
-      title: "Location Error",
-      description: message,
-      variant: "destructive",
-    });
-    
-    setState(prev => ({
-      ...prev,
-      loading: false,
-      error: message
-    }));
-  };
+  }, [toast, state.watchId, stopLocationTracking, startWatchingPosition, handleLocationError]);
 
-  const stopLocationTracking = () => {
-    if (state.watchId !== null) {
-      navigator.geolocation.clearWatch(state.watchId);
-      setState(prev => ({ ...prev, watchId: null }));
-    }
-  };
-
-  // Start location tracking automatically when the hook is used
+  // Start location tracking only once when the hook is mounted
   useEffect(() => {
-    startLocationTracking();
+    const timeoutId = setTimeout(() => {
+      startLocationTracking();
+    }, 500);
     
     // Clean up location watch when component unmounts
     return () => {
+      clearTimeout(timeoutId);
       stopLocationTracking();
     };
-  }, []);
+  }, [startLocationTracking, stopLocationTracking]);
 
   return {
     ...state,

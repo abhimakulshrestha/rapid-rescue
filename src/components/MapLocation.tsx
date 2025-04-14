@@ -27,6 +27,7 @@ const MapLocation: React.FC<MapLocationProps> = ({ onLocationUpdate }) => {
   const mapRef = useRef<L.Map | null>(null);
   const { location, loading, startLocationTracking } = useGeolocation();
   const [showManualEntry, setShowManualEntry] = useState(false);
+  const mapInitializedRef = useRef(false);
 
   // Form for manual coordinates entry
   const form = useForm<CoordinatesFormValues>({
@@ -41,26 +42,19 @@ const MapLocation: React.FC<MapLocationProps> = ({ onLocationUpdate }) => {
     if (location) {
       form.setValue('latitude', location.lat.toString());
       form.setValue('longitude', location.lng.toString());
-    }
-  }, [location, form]);
-
-  // Update parent component with location changes - using useCallback to prevent unnecessary renders
-  const updateParentLocation = useCallback(() => {
-    if (location) {
+      
+      // Update parent component with location changes
       onLocationUpdate(location.lat, location.lng);
     }
-  }, [location, onLocationUpdate]);
-
-  // Use effect with callback dependency
-  React.useEffect(() => {
-    updateParentLocation();
-  }, [updateParentLocation]);
+  }, [location, form, onLocationUpdate]);
 
   const handleMapReady = useCallback((map: L.Map) => {
-    mapRef.current = map;
-    // Get user location once map is loaded
-    startLocationTracking();
-  }, [startLocationTracking]);
+    // Only set map reference once to prevent loops
+    if (!mapInitializedRef.current) {
+      mapRef.current = map;
+      mapInitializedRef.current = true;
+    }
+  }, []);
 
   const handleManualSubmit = (values: CoordinatesFormValues) => {
     const lat = parseFloat(values.latitude);
@@ -76,6 +70,12 @@ const MapLocation: React.FC<MapLocationProps> = ({ onLocationUpdate }) => {
       setShowManualEntry(false);
     }
   };
+
+  const refreshLocation = useCallback(() => {
+    // Reset initialization flag to allow map reinitialization
+    mapInitializedRef.current = false;
+    startLocationTracking();
+  }, [startLocationTracking]);
 
   return (
     <Card className="w-full">
@@ -96,7 +96,7 @@ const MapLocation: React.FC<MapLocationProps> = ({ onLocationUpdate }) => {
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={startLocationTracking} 
+                onClick={refreshLocation} 
                 disabled={loading}
                 className="text-xs"
               >

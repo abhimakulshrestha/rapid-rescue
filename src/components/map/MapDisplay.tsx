@@ -1,5 +1,5 @@
 
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -40,9 +40,14 @@ const MapUpdater = ({ location }: { location: { lat: number; lng: number } | nul
 // Component to handle map initialization
 const MapInitializer = ({ onMapReady }: { onMapReady: (map: L.Map) => void }) => {
   const map = useMap();
+  const initRef = useRef(false);
   
   useEffect(() => {
-    onMapReady(map);
+    // Only call onMapReady once to prevent infinite loop
+    if (!initRef.current) {
+      initRef.current = true;
+      onMapReady(map);
+    }
   }, [map, onMapReady]);
   
   return null;
@@ -52,6 +57,11 @@ const MapDisplay: React.FC<MapDisplayProps> = ({ location, loading, onMapReady }
   // Default location (centered on India)
   const defaultLocation: [number, number] = [20.5937, 78.9629];
   const zoomLevel = 5;
+
+  // Memoize onMapReady to prevent unnecessary re-renders
+  const handleMapReady = useCallback((map: L.Map) => {
+    onMapReady(map);
+  }, [onMapReady]);
 
   return (
     <div className="w-full h-64 bg-gray-100 rounded-md overflow-hidden relative">
@@ -72,7 +82,7 @@ const MapDisplay: React.FC<MapDisplayProps> = ({ location, loading, onMapReady }
           <MapUpdater location={location} />
           
           {/* Map initializer component to handle map ready event */}
-          <MapInitializer onMapReady={onMapReady} />
+          <MapInitializer onMapReady={handleMapReady} />
         </MapContainer>
       ) : null}
       
