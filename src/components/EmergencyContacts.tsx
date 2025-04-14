@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Phone, Plus, Star, Trash, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -10,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { EmergencyContact, getUserProfile, updateUserProfile } from '@/services/mockData';
+import { initiatePhoneCall } from '@/services/emergencyServices';
 
 interface EmergencyContactsProps {
   userId: string;
@@ -138,6 +138,23 @@ const EmergencyContacts: React.FC<EmergencyContactsProps> = ({ userId }) => {
     }
   };
 
+  const handleCallContact = (phoneNumber: string) => {
+    if (phoneNumber) {
+      initiatePhoneCall(phoneNumber);
+      
+      toast({
+        title: 'Calling Contact',
+        description: `Initiating call to ${phoneNumber}`,
+      });
+    } else {
+      toast({
+        title: 'Error',
+        description: 'No phone number available for this contact',
+        variant: 'destructive',
+      });
+    }
+  };
+
   if (isLoading && contacts.length === 0) {
     return (
       <Card className="w-full">
@@ -200,17 +217,27 @@ const EmergencyContacts: React.FC<EmergencyContactsProps> = ({ userId }) => {
                       <p className="text-sm font-medium">{contact.phone}</p>
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-gray-500 hover:text-red-500"
-                    onClick={() => {
-                      setSelectedContact(contact);
-                      setDeleteDialogOpen(true);
-                    }}
-                  >
-                    <Trash className="h-4 w-4" />
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="success"
+                      size="sm"
+                      className="text-white"
+                      onClick={() => handleCallContact(contact.phone)}
+                    >
+                      <Phone className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-gray-500 hover:text-red-500"
+                      onClick={() => {
+                        setSelectedContact(contact);
+                        setDeleteDialogOpen(true);
+                      }}
+                    >
+                      <Trash className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -218,7 +245,6 @@ const EmergencyContacts: React.FC<EmergencyContactsProps> = ({ userId }) => {
         </CardContent>
       </Card>
 
-      {/* Add Contact Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -286,7 +312,6 @@ const EmergencyContacts: React.FC<EmergencyContactsProps> = ({ userId }) => {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
