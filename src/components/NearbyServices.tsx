@@ -1,6 +1,6 @@
 
 import React, { memo } from 'react';
-import { Building, Clock, MapPin, Phone, Star } from 'lucide-react';
+import { Building, Clock, MapPin, Phone, Star, Wifi } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { EmergencyService } from '@/types/emergencyTypes';
@@ -48,18 +48,18 @@ const NearbyServices: React.FC<NearbyServicesProps> = ({
       </CardHeader>
       <CardContent className="space-y-4">
         {filteredServices.map((service) => (
-          <div key={service.id} className="emergency-card">
+          <div key={service.id} className="emergency-card border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow">
             <div className="flex justify-between">
               <div>
                 <h3 className="font-bold text-lg">{service.name}</h3>
                 {service.vicinity && (
                   <div className="flex items-center text-sm text-gray-500 mt-1">
-                    <MapPin className="h-3 w-3 mr-1" />
-                    <span className="line-clamp-1">{service.vicinity}</span>
+                    <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
+                    <span className="line-clamp-2">{service.vicinity}</span>
                   </div>
                 )}
                 <div className="flex items-center text-sm text-gray-500 mt-1">
-                  <MapPin className="h-3 w-3 mr-1" />
+                  <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
                   <span>{service.distance}</span>
                   {service.rating && (
                     <div className="flex items-center ml-2">
@@ -69,17 +69,25 @@ const NearbyServices: React.FC<NearbyServicesProps> = ({
                   )}
                 </div>
                 <div className="flex items-center text-sm text-gray-500 mt-1">
-                  <Clock className="h-3 w-3 mr-1" />
-                  <span>Open 24/7</span>
+                  <Clock className="h-3 w-3 mr-1 flex-shrink-0" />
+                  <span>{service.open_now !== undefined ? (service.open_now ? "Open now" : "Closed") : "Open 24/7"}</span>
                 </div>
                 <div className="flex items-center text-sm mt-1">
-                  <Phone className="h-3 w-3 mr-1 text-emergency-red" />
+                  <Phone className="h-3 w-3 mr-1 text-emergency-red flex-shrink-0" />
                   <span className="font-medium">{service.phone}</span>
                 </div>
               </div>
               <div className="flex flex-col justify-between">
                 <div className="p-2 rounded-full bg-gray-100">
-                  <Building className="h-6 w-6 text-gray-600" />
+                  {service.category === 'ambulance' ? (
+                    <Building className="h-6 w-6 text-emergency-red" />
+                  ) : service.category === 'police' ? (
+                    <Building className="h-6 w-6 text-emergency-blue" />
+                  ) : service.category === 'fire' ? (
+                    <Building className="h-6 w-6 text-emergency-orange" />
+                  ) : (
+                    <Building className="h-6 w-6 text-gray-600" />
+                  )}
                 </div>
                 <Button 
                   size="sm" 

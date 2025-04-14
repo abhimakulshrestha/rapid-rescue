@@ -1,3 +1,4 @@
+
 import { EmergencyService, EmergencyEvent } from '@/types/emergencyTypes';
 
 // Backup mock services in case the API fails
@@ -107,46 +108,79 @@ export const getNearbyServices = async (
   longitude: number
 ): Promise<EmergencyService[]> => {
   try {
-    // Use Google Places API to get real hospitals/emergency services nearby
-    // For simplicity and privacy, we're using a proxy to make the request
-    const response = await fetch(
-      `https://corsproxy.io/?${encodeURIComponent(
-        `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${latitude},${longitude}&radius=5000&type=hospital&key=AIzaSyDLYn9FCZpKkkGlMNTaTaZYfIa61FQQ2OI`
-      )}`
-    );
+    // Use Google Places API with different types to get real emergency services
+    const types = ['hospital', 'police', 'fire_station', 'pharmacy'];
+    const radius = 5000; // 5km radius
     
-    if (!response.ok) {
-      throw new Error('Failed to fetch nearby services');
-    }
+    let allResults: EmergencyService[] = [];
     
-    const data = await response.json();
-    
-    if (data.status === 'OK' && data.results && data.results.length > 0) {
-      // Transform Google Places API data to our EmergencyService format
-      const services: EmergencyService[] = data.results.slice(0, 10).map((place: any, index: number) => {
-        // Calculate distance in a simplified way (in meters)
-        const distance = place.geometry?.location 
-          ? calculateDistance(
-              latitude, 
-              longitude, 
-              place.geometry.location.lat, 
-              place.geometry.location.lng
-            )
-          : '5.0';
-          
-        return {
-          id: place.place_id || `place-${index}`,
-          category: 'ambulance', // Default to ambulance for hospitals
-          name: place.name,
-          phone: place.international_phone_number || '+91 Emergency', // Phone may not be available in this API
-          distance: `${parseFloat(distance).toFixed(1)} km`,
-          vicinity: place.vicinity,
-          rating: place.rating,
-          place_id: place.place_id,
-        };
-      });
+    // Make parallel requests for different place types
+    const promises = types.map(async (type) => {
+      const response = await fetch(
+        `https://corsproxy.io/?${encodeURIComponent(
+          `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${latitude},${longitude}&radius=${radius}&type=${type}&key=AIzaSyDLYn9FCZpKkkGlMNTaTaZYfIa61FQQ2OI`
+        )}`
+      );
       
-      return services;
+      if (!response.ok) {
+        throw new Error(`Failed to fetch ${type} services`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.status === 'OK' && data.results && data.results.length > 0) {
+        // Transform Google Places API data to our EmergencyService format
+        return data.results.slice(0, 5).map((place: any) => {
+          // Calculate distance in a simplified way (in km)
+          const distance = place.geometry?.location 
+            ? calculateDistance(
+                latitude, 
+                longitude, 
+                place.geometry.location.lat, 
+                place.geometry.location.lng
+              )
+            : '5.0';
+            
+          // Determine category based on type
+          let category;
+          switch (type) {
+            case 'hospital':
+              category = 'ambulance';
+              break;
+            case 'police':
+              category = 'police';
+              break;
+            case 'fire_station':
+              category = 'fire';
+              break;
+            default:
+              category = 'other';
+          }
+            
+          return {
+            id: place.place_id || `place-${Math.random().toString(36).substring(2, 9)}`,
+            category: category,
+            name: place.name,
+            phone: place.international_phone_number || getEmergencyNumberByCategory(category),
+            distance: `${parseFloat(distance).toFixed(1)} km`,
+            vicinity: place.vicinity,
+            rating: place.rating,
+            place_id: place.place_id,
+            open_now: place.opening_hours?.open_now,
+          };
+        });
+      }
+      return [];
+    });
+    
+    // Wait for all requests to complete
+    const results = await Promise.all(promises);
+    
+    // Flatten the results array and remove empty arrays
+    allResults = results.flat().filter(Boolean);
+    
+    if (allResults.length > 0) {
+      return allResults;
     }
     
     // Fallback to mock data when the API doesn't return results
@@ -158,6 +192,22 @@ export const getNearbyServices = async (
     return mockServices;
   }
 };
+
+// Function to get emergency numbers by category
+function getEmergencyNumberByCategory(category: string): string {
+  switch (category) {
+    case 'ambulance':
+      return '108';
+    case 'police':
+      return '100';
+    case 'fire':
+      return '101';
+    case 'electric':
+      return '1912';
+    default:
+      return '112'; // India's unified emergency number
+  }
+}
 
 // Helper function to calculate distance between two coordinates
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): string {
@@ -177,7 +227,7 @@ function deg2rad(deg: number): number {
   return deg * (Math.PI / 180);
 }
 
-// Log emergency event function - keeping the same implementation
+// Log emergency event function
 export const logEmergencyEvent = (event: EmergencyEvent): Promise<void> => {
   // In a real app, this would send the event to a backend API
   // Here we just log to console and return a resolved promise
