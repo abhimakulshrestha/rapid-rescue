@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
@@ -25,6 +24,18 @@ const VIEWS = {
   CONTACTS: 'contacts',
   SETTINGS: 'settings',
 };
+
+// Define a type for profile data that includes emergencyContacts
+interface ProfileData {
+  id: string;
+  name: string;
+  email: string;
+  created_at: string;
+  updated_at: string;
+  location_lat: number | null;
+  location_lng: number | null;
+  emergencyContacts?: any[];
+}
 
 const Dashboard = () => {
   const { toast } = useToast();
@@ -55,8 +66,10 @@ const Dashboard = () => {
           .eq('id', user.id)
           .single();
           
-        if (data && data.emergencyContacts) {
-          setEmergencyContacts(data.emergencyContacts);
+        if (data) {
+          // Cast data to ProfileData to provide type safety
+          const profileData = data as ProfileData;
+          setEmergencyContacts(profileData.emergencyContacts || []);
         }
       } catch (error) {
         console.error('Error fetching emergency contacts:', error);

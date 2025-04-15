@@ -1,4 +1,3 @@
-
 import React, { useEffect, useCallback, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, useMap, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -64,6 +63,7 @@ interface EmergencyVehicle {
   latitude: number;
   longitude: number;
   last_updated: string | null;
+  distance?: string;
 }
 
 // Component to update map view when location changes

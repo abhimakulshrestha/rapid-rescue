@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Car, Ambulance, Police, Flame, Phone } from 'lucide-react';
+import { Car, Ambulance, Shield, Flame, Phone } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -146,7 +146,7 @@ const EmergencyVehicles: React.FC<EmergencyVehiclesProps> = ({ userLocation }) =
       case 'ambulance':
         return <Ambulance className="h-5 w-5 text-emergency-red" />;
       case 'police':
-        return <Police className="h-5 w-5 text-emergency-blue" />;
+        return <Shield className="h-5 w-5 text-emergency-blue" />;
       case 'fire':
         return <Flame className="h-5 w-5 text-emergency-orange" />;
       default:
