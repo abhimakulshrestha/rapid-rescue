@@ -1,7 +1,8 @@
 
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import './map.css'; // Import our custom CSS
 import L from 'leaflet';
 import { supabase } from '@/integrations/supabase/client';
 import { EmergencyVehicle } from '@/types/emergencyTypes';
@@ -22,6 +23,12 @@ const MapDisplay: React.FC<MapDisplayProps> = ({ location, loading, onMapReady }
   const defaultLocation: [number, number] = [20.5937, 78.9629];
   const zoomLevel = 5;
   const [vehicles, setVehicles] = useState<EmergencyVehicle[]>([]);
+  const [mapKey, setMapKey] = useState<number>(0);
+  
+  // Memoize the center location to prevent unnecessary re-renders
+  const centerLocation = useMemo(() => 
+    location ? [location.lat, location.lng] : defaultLocation,
+  [location]);
 
   // Fetch emergency vehicles
   useEffect(() => {
@@ -74,39 +81,49 @@ const MapDisplay: React.FC<MapDisplayProps> = ({ location, loading, onMapReady }
   const handleMapReady = useCallback((map: L.Map) => {
     onMapReady(map);
   }, [onMapReady]);
+  
+  // Force a re-mount of the map container when location changes significantly
+  useEffect(() => {
+    if (location) {
+      setMapKey(prev => prev + 1);
+    }
+  }, [location?.lat?.toFixed(3), location?.lng?.toFixed(3)]);
+
+  // Early return pattern to simplify the component
+  if (loading && !location) {
+    return <MapLoading />;
+  }
 
   return (
     <div className="w-full h-64 bg-gray-100 rounded-md overflow-hidden relative">
-      {location || !loading ? (
-        <MapContainer 
-          center={location ? [location.lat, location.lng] : defaultLocation}
-          zoom={location ? 14 : zoomLevel}
-          style={{ height: '100%', width: '100%' }}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          
-          {/* User location marker */}
-          {location && <Marker position={[location.lat, location.lng]} icon={DefaultIcon}>
-            <Popup>Your Location</Popup>
-          </Marker>}
-          
-          {/* Emergency vehicle markers */}
-          <VehicleMarkers vehicles={vehicles} />
-          
-          {/* Map updater component to handle location changes */}
-          <MapUpdater location={location} />
-          
-          {/* Map initializer component to handle map ready event */}
-          <MapInitializer onMapReady={handleMapReady} />
-        </MapContainer>
-      ) : null}
-      
-      {loading && !location && <MapLoading />}
+      <MapContainer 
+        key={mapKey}
+        center={centerLocation as [number, number]}
+        zoom={location ? 14 : zoomLevel}
+        style={{ height: '100%', width: '100%' }}
+        attributionControl={false}
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        
+        {/* User location marker */}
+        {location && <Marker position={[location.lat, location.lng]} icon={DefaultIcon}>
+          <Popup>Your Location</Popup>
+        </Marker>}
+        
+        {/* Emergency vehicle markers with animation */}
+        <VehicleMarkers vehicles={vehicles} />
+        
+        {/* Map updater component to handle location changes */}
+        <MapUpdater location={location} />
+        
+        {/* Map initializer component to handle map ready event */}
+        <MapInitializer onMapReady={handleMapReady} />
+      </MapContainer>
     </div>
   );
 };
 
-export default MapDisplay;
+export default React.memo(MapDisplay);

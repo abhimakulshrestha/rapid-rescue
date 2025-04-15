@@ -1,0 +1,31 @@
+
+/* Map animations */
+.leaflet-marker-animated {
+  animation: marker-pulse 1.5s infinite alternate;
+}
+
+@keyframes marker-pulse {
+  0% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  100% {
+    transform: scale(1.15);
+    filter: brightness(1.2);
+  }
+}
+
+/* Prevent map flickering */
+.leaflet-container {
+  will-change: transform;
+}
+
+.leaflet-fade-anim .leaflet-tile,
+.leaflet-fade-anim .leaflet-popup {
+  will-change: opacity;
+}
+
+/* Optimize Leaflet rendering */
+.leaflet-container {
+  backface-visibility: hidden;
+}
