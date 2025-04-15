@@ -1,4 +1,3 @@
-
 // Types for emergency services
 export interface EmergencyService {
   id: string;
@@ -14,6 +13,19 @@ export interface EmergencyService {
   international_phone_number?: string;
   website?: string;
   address?: string;
+}
+
+// Update the EmergencyVehicle interface to include distance
+export interface EmergencyVehicle {
+  id: string;
+  type: string;
+  name: string;
+  phone: string | null;
+  status: string | null;
+  latitude: number;
+  longitude: number;
+  last_updated: string | null;
+  distance?: string; // Add optional distance property
 }
 
 // Type for emergency events

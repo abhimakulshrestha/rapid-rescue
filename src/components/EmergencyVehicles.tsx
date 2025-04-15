@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Car, Ambulance, Shield, Flame, Phone } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,18 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { calculateDistance } from '@/services/locationUtils';
 import { initiatePhoneCall } from '@/services/emergencyServices';
 import { useToast } from '@/hooks/use-toast';
-
-interface EmergencyVehicle {
-  id: string;
-  type: string;
-  name: string;
-  phone: string | null;
-  status: string | null;
-  latitude: number;
-  longitude: number;
-  last_updated: string | null;
-  distance?: string;
-}
+import { EmergencyVehicle } from '@/types/emergencyTypes';
 
 interface EmergencyVehiclesProps {
   userLocation: { latitude: number; longitude: number } | null;
@@ -42,7 +30,6 @@ const EmergencyVehicles: React.FC<EmergencyVehiclesProps> = ({ userLocation }) =
 
         let processedVehicles = data || [];
         
-        // Calculate distance if user location is available
         if (userLocation) {
           processedVehicles = processedVehicles.map(vehicle => ({
             ...vehicle,
@@ -54,7 +41,6 @@ const EmergencyVehicles: React.FC<EmergencyVehiclesProps> = ({ userLocation }) =
             )
           }));
           
-          // Sort by distance
           processedVehicles.sort((a, b) => {
             const distA = parseFloat(a.distance?.split(' ')[0] || '999');
             const distB = parseFloat(b.distance?.split(' ')[0] || '999');
@@ -77,7 +63,6 @@ const EmergencyVehicles: React.FC<EmergencyVehiclesProps> = ({ userLocation }) =
 
     fetchVehicles();
 
-    // Set up real-time subscription for updates
     const channel = supabase
       .channel('emergency-vehicles-changes')
       .on(
