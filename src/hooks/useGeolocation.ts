@@ -53,24 +53,30 @@ export function useGeolocation(): UseGeolocationReturn {
   
   const startWatchingPosition = useCallback(() => {
     // Start watching location for real-time updates
-    const watchId = navigator.geolocation.watchPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        console.log("Location update:", latitude, longitude);
-        setState(prev => ({
-          ...prev,
-          location: { lat: latitude, lng: longitude },
-          loading: false,
-          error: null
-        }));
-      },
-      (error) => {
-        handleLocationError(error);
-      },
-      { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 }
-    );
+    if (!navigator.geolocation) return;
     
-    setState(prev => ({ ...prev, watchId }));
+    try {
+      const watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          console.log("Location update:", latitude, longitude);
+          setState(prev => ({
+            ...prev,
+            location: { lat: latitude, lng: longitude },
+            loading: false,
+            error: null
+          }));
+        },
+        (error) => {
+          handleLocationError(error);
+        },
+        { enableHighAccuracy: true, timeout: 60000, maximumAge: 0 }
+      );
+      
+      setState(prev => ({ ...prev, watchId }));
+    } catch (e) {
+      console.error("Error setting up location watch:", e);
+    }
   }, [handleLocationError]);
 
   // Memoize the stopLocationTracking function
@@ -106,26 +112,35 @@ export function useGeolocation(): UseGeolocationReturn {
       stopLocationTracking();
     }
     
-    // Get current position immediately first
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        console.log("Initial location:", latitude, longitude);
-        setState(prev => ({
-          ...prev,
-          location: { lat: latitude, lng: longitude },
-          loading: false,
-          error: null
-        }));
-        
-        // Then start watching for changes
-        startWatchingPosition();
-      },
-      (error) => {
-        handleLocationError(error);
-      },
-      { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 }
-    );
+    try {
+      // Get current position immediately first
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          console.log("Initial location:", latitude, longitude);
+          setState(prev => ({
+            ...prev,
+            location: { lat: latitude, lng: longitude },
+            loading: false,
+            error: null
+          }));
+          
+          // Then start watching for changes
+          startWatchingPosition();
+        },
+        (error) => {
+          handleLocationError(error);
+        },
+        { enableHighAccuracy: true, timeout: 60000, maximumAge: 0 }
+      );
+    } catch (e) {
+      console.error("Error getting current position:", e);
+      setState(prev => ({
+        ...prev,
+        loading: false,
+        error: "Error accessing location services"
+      }));
+    }
   }, [toast, state.watchId, stopLocationTracking, startWatchingPosition, handleLocationError]);
 
   // Start location tracking only once when the hook is mounted

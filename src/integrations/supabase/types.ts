@@ -39,11 +39,46 @@ export type Database = {
         }
         Relationships: []
       }
+      emergency_vehicles: {
+        Row: {
+          id: string
+          last_updated: string | null
+          latitude: number
+          longitude: number
+          name: string
+          phone: string | null
+          status: string | null
+          type: string
+        }
+        Insert: {
+          id?: string
+          last_updated?: string | null
+          latitude: number
+          longitude: number
+          name: string
+          phone?: string | null
+          status?: string | null
+          type: string
+        }
+        Update: {
+          id?: string
+          last_updated?: string | null
+          latitude?: number
+          longitude?: number
+          name?: string
+          phone?: string | null
+          status?: string | null
+          type?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
           email: string
           id: string
+          location_lat: number | null
+          location_lng: number | null
           name: string
           updated_at: string
         }
@@ -51,6 +86,8 @@ export type Database = {
           created_at?: string
           email: string
           id: string
+          location_lat?: number | null
+          location_lng?: number | null
           name: string
           updated_at?: string
         }
@@ -58,6 +95,8 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
+          location_lat?: number | null
+          location_lng?: number | null
           name?: string
           updated_at?: string
         }

@@ -1,13 +1,17 @@
 
-import React, { useEffect, useCallback, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
+import React, { useEffect, useCallback, useRef, useState } from 'react';
+import { MapContainer, TileLayer, Marker, useMap, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { Loader } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 // Fix for default marker icons in Leaflet
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+import iconAmbulance from '/ambulance-icon.png';
+import iconPolice from '/police-icon.png';
+import iconFire from '/fire-icon.png';
 
 // Fix Leaflet default icon issue
 let DefaultIcon = L.icon({
@@ -16,12 +20,50 @@ let DefaultIcon = L.icon({
   iconSize: [25, 41],
   iconAnchor: [12, 41]
 });
+
+// Create custom icons for emergency vehicles
+const AmbulanceIcon = L.icon({
+  iconUrl: iconAmbulance || icon,
+  shadowUrl: iconShadow,
+  iconSize: [32, 32],
+  iconAnchor: [16, 32],
+  popupAnchor: [0, -32]
+});
+
+const PoliceIcon = L.icon({
+  iconUrl: iconPolice || icon,
+  shadowUrl: iconShadow,
+  iconSize: [32, 32],
+  iconAnchor: [16, 32],
+  popupAnchor: [0, -32]
+});
+
+const FireIcon = L.icon({
+  iconUrl: iconFire || icon,
+  shadowUrl: iconShadow,
+  iconSize: [32, 32],
+  iconAnchor: [16, 32],
+  popupAnchor: [0, -32]
+});
+
+// Set default icon
 L.Marker.prototype.options.icon = DefaultIcon;
 
 interface MapDisplayProps {
   location: { lat: number; lng: number } | null;
   loading: boolean;
   onMapReady: (map: L.Map) => void;
+}
+
+interface EmergencyVehicle {
+  id: string;
+  type: string;
+  name: string;
+  phone: string | null;
+  status: string | null;
+  latitude: number;
+  longitude: number;
+  last_updated: string | null;
 }
 
 // Component to update map view when location changes
@@ -57,11 +99,72 @@ const MapDisplay: React.FC<MapDisplayProps> = ({ location, loading, onMapReady }
   // Default location (centered on India)
   const defaultLocation: [number, number] = [20.5937, 78.9629];
   const zoomLevel = 5;
+  const [vehicles, setVehicles] = useState<EmergencyVehicle[]>([]);
+
+  // Fetch emergency vehicles
+  useEffect(() => {
+    const fetchVehicles = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('emergency_vehicles')
+          .select('*');
+
+        if (error) throw error;
+        
+        setVehicles(data || []);
+      } catch (error) {
+        console.error('Error fetching emergency vehicles:', error);
+      }
+    };
+
+    fetchVehicles();
+
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('emergency-vehicles-map')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'emergency_vehicles',
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            setVehicles(prev => [...prev, payload.new as EmergencyVehicle]);
+          } else if (payload.eventType === 'UPDATE') {
+            setVehicles(prev => prev.map(vehicle => 
+              vehicle.id === payload.new.id ? payload.new as EmergencyVehicle : vehicle
+            ));
+          } else if (payload.eventType === 'DELETE') {
+            setVehicles(prev => prev.filter(vehicle => vehicle.id !== payload.old.id));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   // Memoize onMapReady to prevent unnecessary re-renders
   const handleMapReady = useCallback((map: L.Map) => {
     onMapReady(map);
   }, [onMapReady]);
+
+  const getVehicleIcon = (type: string) => {
+    switch (type) {
+      case 'ambulance':
+        return AmbulanceIcon;
+      case 'police':
+        return PoliceIcon;
+      case 'fire':
+        return FireIcon;
+      default:
+        return DefaultIcon;
+    }
+  };
 
   return (
     <div className="w-full h-64 bg-gray-100 rounded-md overflow-hidden relative">
@@ -76,7 +179,36 @@ const MapDisplay: React.FC<MapDisplayProps> = ({ location, loading, onMapReady }
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           
-          {location && <Marker position={[location.lat, location.lng]} />}
+          {/* User location marker */}
+          {location && <Marker position={[location.lat, location.lng]}>
+            <Popup>Your Location</Popup>
+          </Marker>}
+          
+          {/* Emergency vehicle markers */}
+          {vehicles.map((vehicle) => (
+            <Marker 
+              key={vehicle.id}
+              position={[vehicle.latitude, vehicle.longitude]}
+              icon={getVehicleIcon(vehicle.type)}
+            >
+              <Popup>
+                <div>
+                  <h3 className="font-bold text-sm">{vehicle.name}</h3>
+                  <p className="text-xs capitalize">{vehicle.type}</p>
+                  {vehicle.phone && (
+                    <p className="text-xs mt-1">
+                      <a 
+                        href={`tel:${vehicle.phone}`} 
+                        className="text-blue-600 hover:underline"
+                      >
+                        Call: {vehicle.phone}
+                      </a>
+                    </p>
+                  )}
+                </div>
+              </Popup>
+            </Marker>
+          ))}
           
           {/* Map updater component to handle location changes */}
           <MapUpdater location={location} />

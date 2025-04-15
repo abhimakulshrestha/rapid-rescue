@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
@@ -8,11 +9,14 @@ import NearbyServices from '@/components/NearbyServices';
 import CallModal from '@/components/CallModal';
 import Profile from '@/components/Profile';
 import EmergencyContacts from '@/components/EmergencyContacts';
+import EmergencyVehicles from '@/components/EmergencyVehicles';
 import Settings from '@/components/Settings';
 import { getNearbyServices, logEmergencyEvent, initiatePhoneCall } from '@/services/emergencyServices';
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
+import { Phone } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 // Define view constants for dashboard sections
 const VIEWS = {
@@ -34,12 +38,58 @@ const Dashboard = () => {
   const [callModalOpen, setCallModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState<EmergencyService | null>(null);
   const [currentView, setCurrentView] = useState(VIEWS.DASHBOARD);
+  const [emergencyContacts, setEmergencyContacts] = useState<any[]>([]);
 
   useEffect(() => {
     if (!user) {
       navigate('/');
+      return;
     }
+
+    // Fetch emergency contacts
+    const fetchEmergencyContacts = async () => {
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+          
+        if (data && data.emergencyContacts) {
+          setEmergencyContacts(data.emergencyContacts);
+        }
+      } catch (error) {
+        console.error('Error fetching emergency contacts:', error);
+      }
+    };
+
+    fetchEmergencyContacts();
   }, [user, navigate]);
+
+  // Update user location in the database
+  useEffect(() => {
+    if (user && location) {
+      const updateUserLocation = async () => {
+        try {
+          const { error } = await supabase
+            .from('profiles')
+            .update({
+              location_lat: location.latitude,
+              location_lng: location.longitude,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', user.id);
+
+          if (error) throw error;
+          console.log('User location updated in database');
+        } catch (error) {
+          console.error('Error updating user location:', error);
+        }
+      };
+
+      updateUserLocation();
+    }
+  }, [user, location]);
 
   const fetchNearbyServices = useCallback(async () => {
     if (!location) return;
@@ -125,6 +175,17 @@ const Dashboard = () => {
     setCurrentView(view);
   }, []);
 
+  const handleCallEmergencyContact = useCallback((contact: any) => {
+    if (contact && contact.phone) {
+      initiatePhoneCall(contact.phone);
+      
+      toast({
+        title: "Emergency Call Initiated",
+        description: `Calling emergency contact: ${contact.name}`,
+      });
+    }
+  }, [toast]);
+
   if (!user) {
     return null;
   }
@@ -142,6 +203,26 @@ const Dashboard = () => {
           onCallService={handleCallService}
           nearbyServices={services}
         />
+        
+        {/* Emergency Contacts Quick Call Section */}
+        {emergencyContacts && emergencyContacts.length > 0 && (
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h3 className="font-bold mb-3">Quick Call Emergency Contacts</h3>
+            <div className="flex flex-wrap gap-2">
+              {emergencyContacts.slice(0, 3).map((contact) => (
+                <Button 
+                  key={contact.id}
+                  variant="outline" 
+                  className="flex items-center border-emergency-red text-emergency-red hover:bg-emergency-red/10"
+                  onClick={() => handleCallEmergencyContact(contact)}
+                >
+                  <Phone className="h-4 w-4 mr-1" />
+                  Call {contact.name}
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
       
       <div className="space-y-6">
@@ -151,9 +232,12 @@ const Dashboard = () => {
           selectedCategory={selectedCategory}
           onCallService={handleCallService}
         />
+        
+        {/* Display Emergency Vehicles */}
+        <EmergencyVehicles userLocation={location} />
       </div>
     </div>
-  ), [services, selectedCategory, handleLocationUpdate, handleSelectCategory, handleCallService]);
+  ), [services, selectedCategory, location, handleLocationUpdate, handleSelectCategory, handleCallService, emergencyContacts, handleCallEmergencyContact]);
 
   const renderCurrentView = () => {
     switch (currentView) {

@@ -54,6 +54,7 @@ export async function fetchNearbyPlaces(
   radius: number = 5000
 ): Promise<any[]> {
   try {
+    // Use actual location to get real nearby places
     const response = await fetch(
       `${CORS_PROXY}${encodeURIComponent(
         `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${latitude},${longitude}&radius=${radius}&type=${type}&key=${GOOGLE_API_KEY}`
@@ -65,6 +66,7 @@ export async function fetchNearbyPlaces(
     }
     
     const data = await response.json();
+    console.log(`Fetched ${type} services:`, data);
     
     if (data.status === 'OK' && data.results && data.results.length > 0) {
       return data.results.slice(0, 5); // Limit to 5 results per type

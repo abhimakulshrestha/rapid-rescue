@@ -2,6 +2,7 @@
 import { EmergencyService, EmergencyEvent } from '@/types/emergencyTypes';
 import { fetchNearbyPlaces, transformPlaceToEmergencyService } from './placesApi';
 import { mockServices } from './mockServices';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Function to get nearby services based on location
@@ -35,6 +36,7 @@ export const getNearbyServices = async (
     allResults = results.flat().filter(Boolean);
     
     if (allResults.length > 0) {
+      console.log('Fetched real emergency services based on location:', allResults);
       return allResults;
     }
     
@@ -51,9 +53,26 @@ export const getNearbyServices = async (
 /**
  * Log emergency event function
  */
-export const logEmergencyEvent = (event: EmergencyEvent): Promise<void> => {
-  console.log('Emergency event logged:', event);
-  return Promise.resolve();
+export const logEmergencyEvent = async (event: EmergencyEvent): Promise<void> => {
+  try {
+    // Log to Supabase if available
+    const { error } = await supabase
+      .from('emergency_events')
+      .insert({
+        user_id: event.userId,
+        type: event.type,
+        service_id: event.serviceId,
+        latitude: event.latitude,
+        longitude: event.longitude,
+        timestamp: event.timestamp
+      });
+      
+    if (error) throw error;
+    console.log('Emergency event logged to Supabase:', event);
+  } catch (e) {
+    console.error('Error logging to Supabase, fallback to console log:', e);
+    console.log('Emergency event logged (console fallback):', event);
+  }
 };
 
 /**
