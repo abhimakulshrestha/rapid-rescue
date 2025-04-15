@@ -23,24 +23,29 @@ export function useEmergencyVehicles(userLocation: { latitude: number; longitude
         let processedVehicles = data || [];
         
         if (userLocation) {
-          processedVehicles = processedVehicles.map(vehicle => ({
-            ...vehicle,
-            distance: calculateDistance(
+          // Process vehicles to add distance property
+          processedVehicles = processedVehicles.map(vehicle => {
+            const vehicleWithDistance = vehicle as EmergencyVehicle;
+            vehicleWithDistance.distance = calculateDistance(
               userLocation.latitude,
               userLocation.longitude,
               vehicle.latitude,
               vehicle.longitude
-            )
-          }));
+            );
+            return vehicleWithDistance;
+          });
           
+          // Sort vehicles by distance
           processedVehicles.sort((a, b) => {
-            const distA = parseFloat(a.distance?.split(' ')[0] || '999');
-            const distB = parseFloat(b.distance?.split(' ')[0] || '999');
+            const vehicleA = a as EmergencyVehicle;
+            const vehicleB = b as EmergencyVehicle;
+            const distA = parseFloat(vehicleA.distance?.split(' ')[0] || '999');
+            const distB = parseFloat(vehicleB.distance?.split(' ')[0] || '999');
             return distA - distB;
           });
         }
         
-        setVehicles(processedVehicles);
+        setVehicles(processedVehicles as EmergencyVehicle[]);
       } catch (error) {
         console.error('Error fetching emergency vehicles:', error);
         toast({
