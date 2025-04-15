@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { Loader } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { EmergencyVehicle } from '@/types/emergencyTypes';
 
 // Fix for default marker icons in Leaflet
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -52,18 +53,6 @@ interface MapDisplayProps {
   location: { lat: number; lng: number } | null;
   loading: boolean;
   onMapReady: (map: L.Map) => void;
-}
-
-interface EmergencyVehicle {
-  id: string;
-  type: string;
-  name: string;
-  phone: string | null;
-  status: string | null;
-  latitude: number;
-  longitude: number;
-  last_updated: string | null;
-  distance?: string;
 }
 
 // Component to update map view when location changes

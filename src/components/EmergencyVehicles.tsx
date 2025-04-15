@@ -1,114 +1,18 @@
-import React, { useEffect, useState } from 'react';
-import { Car, Ambulance, Shield, Flame, Phone } from 'lucide-react';
+
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
-import { calculateDistance } from '@/services/locationUtils';
 import { initiatePhoneCall } from '@/services/emergencyServices';
 import { useToast } from '@/hooks/use-toast';
-import { EmergencyVehicle } from '@/types/emergencyTypes';
+import { useEmergencyVehicles } from '@/hooks/useEmergencyVehicles';
+import VehicleCard from './emergency/VehicleCard';
 
 interface EmergencyVehiclesProps {
   userLocation: { latitude: number; longitude: number } | null;
 }
 
 const EmergencyVehicles: React.FC<EmergencyVehiclesProps> = ({ userLocation }) => {
-  const [vehicles, setVehicles] = useState<EmergencyVehicle[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { vehicles, isLoading } = useEmergencyVehicles(userLocation);
   const { toast } = useToast();
-
-  useEffect(() => {
-    const fetchVehicles = async () => {
-      setIsLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('emergency_vehicles')
-          .select('*');
-
-        if (error) throw error;
-
-        let processedVehicles = data || [];
-        
-        if (userLocation) {
-          processedVehicles = processedVehicles.map(vehicle => ({
-            ...vehicle,
-            distance: calculateDistance(
-              userLocation.latitude,
-              userLocation.longitude,
-              vehicle.latitude,
-              vehicle.longitude
-            )
-          }));
-          
-          processedVehicles.sort((a, b) => {
-            const distA = parseFloat(a.distance?.split(' ')[0] || '999');
-            const distB = parseFloat(b.distance?.split(' ')[0] || '999');
-            return distA - distB;
-          });
-        }
-        
-        setVehicles(processedVehicles);
-      } catch (error) {
-        console.error('Error fetching emergency vehicles:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load emergency vehicles data',
-          variant: 'destructive',
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchVehicles();
-
-    const channel = supabase
-      .channel('emergency-vehicles-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'emergency_vehicles',
-        },
-        (payload) => {
-          if (payload.eventType === 'INSERT') {
-            setVehicles(prev => {
-              const newVehicle = payload.new as EmergencyVehicle;
-              if (userLocation) {
-                newVehicle.distance = calculateDistance(
-                  userLocation.latitude,
-                  userLocation.longitude,
-                  newVehicle.latitude,
-                  newVehicle.longitude
-                );
-              }
-              return [...prev, newVehicle];
-            });
-          } else if (payload.eventType === 'UPDATE') {
-            setVehicles(prev => prev.map(vehicle => 
-              vehicle.id === payload.new.id ? { 
-                ...payload.new as EmergencyVehicle,
-                distance: userLocation ? calculateDistance(
-                  userLocation.latitude,
-                  userLocation.longitude,
-                  (payload.new as EmergencyVehicle).latitude,
-                  (payload.new as EmergencyVehicle).longitude
-                ) : undefined
-              } : vehicle
-            ));
-          } else if (payload.eventType === 'DELETE') {
-            setVehicles(prev => prev.filter(vehicle => vehicle.id !== payload.old.id));
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [userLocation, toast]);
 
   const handleCallVehicle = (phone: string) => {
     if (phone) {
@@ -123,19 +27,6 @@ const EmergencyVehicles: React.FC<EmergencyVehiclesProps> = ({ userLocation }) =
         description: 'No phone number available for this vehicle',
         variant: 'destructive',
       });
-    }
-  };
-
-  const getVehicleIcon = (type: string) => {
-    switch (type) {
-      case 'ambulance':
-        return <Ambulance className="h-5 w-5 text-emergency-red" />;
-      case 'police':
-        return <Shield className="h-5 w-5 text-emergency-blue" />;
-      case 'fire':
-        return <Flame className="h-5 w-5 text-emergency-orange" />;
-      default:
-        return <Car className="h-5 w-5 text-gray-600" />;
     }
   };
 
@@ -167,44 +58,11 @@ const EmergencyVehicles: React.FC<EmergencyVehiclesProps> = ({ userLocation }) =
         ) : (
           <div className="space-y-3">
             {vehicles.map((vehicle) => (
-              <div 
-                key={vehicle.id}
-                className="border border-gray-200 rounded-md p-3 flex justify-between items-center hover:bg-gray-50"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-full bg-gray-100">
-                    {getVehicleIcon(vehicle.type)}
-                  </div>
-                  <div>
-                    <div className="flex items-center">
-                      <h3 className="font-medium">{vehicle.name}</h3>
-                      <Badge 
-                        className={`ml-2 ${
-                          vehicle.status === 'available' 
-                            ? 'bg-green-500' 
-                            : vehicle.status === 'busy' 
-                              ? 'bg-orange-500' 
-                              : 'bg-gray-500'
-                        }`}
-                      >
-                        {vehicle.status || 'unknown'}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-gray-500">
-                      {vehicle.type.charAt(0).toUpperCase() + vehicle.type.slice(1)}
-                      {vehicle.distance && <span> · {vehicle.distance}</span>}
-                    </p>
-                  </div>
-                </div>
-                <Button 
-                  variant="success" 
-                  size="sm" 
-                  className="text-white"
-                  onClick={() => handleCallVehicle(vehicle.phone || '')}
-                >
-                  <Phone className="h-4 w-4" />
-                </Button>
-              </div>
+              <VehicleCard 
+                key={vehicle.id} 
+                vehicle={vehicle} 
+                onCallVehicle={handleCallVehicle} 
+              />
             ))}
           </div>
         )}
