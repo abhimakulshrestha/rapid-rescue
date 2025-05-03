@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Marker, Popup, useMap } from 'react-leaflet';
 import { EmergencyVehicle } from '@/types/emergencyTypes';
@@ -87,12 +88,35 @@ const VehicleMarkers: React.FC<VehicleMarkersProps> = ({ vehicles }) => {
           ];
         }
         
+        const icon = getVehicleIcon(vehicle.type);
+        
+        // Apply animation directly via DOM element
+        if (animating) {
+          // Add to animated elements list - it will get the CSS animation from map.css
+          setTimeout(() => {
+            const elements = document.querySelectorAll(`.vehicle-${vehicle.id}`);
+            elements.forEach(el => {
+              const imgElement = el.querySelector('img');
+              if (imgElement) {
+                imgElement.classList.add('leaflet-marker-animated');
+              }
+            });
+          }, 0);
+        }
+        
         return (
           <Marker 
             key={vehicle.id}
             position={position}
-            icon={getVehicleIcon(vehicle.type)}
-            className={animating ? "leaflet-marker-animated" : ""}
+            icon={icon}
+            eventHandlers={{
+              add: (e) => {
+                const el = e.target.getElement();
+                if (el) {
+                  el.classList.add(`vehicle-${vehicle.id}`);
+                }
+              }
+            }}
           >
             <Popup>
               <div>
