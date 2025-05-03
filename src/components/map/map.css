@@ -53,3 +53,68 @@
     box-shadow: 0 0 0 0 rgba(255, 0, 0, 0);
   }
 }
+
+/* Vehicle type-specific animations */
+.ambulance-vehicle img {
+  animation: emergency-flash 1.2s infinite alternate;
+}
+
+.police-vehicle img {
+  animation: police-flash 1.5s infinite alternate;
+}
+
+.fire-vehicle img {
+  animation: fire-flash 1.3s infinite alternate;
+}
+
+@keyframes emergency-flash {
+  0% {
+    filter: drop-shadow(0 0 2px rgba(234, 56, 76, 0.7));
+  }
+  50% {
+    filter: drop-shadow(0 0 5px rgba(234, 56, 76, 0.9));
+  }
+  100% {
+    filter: drop-shadow(0 0 2px rgba(234, 56, 76, 0.7));
+  }
+}
+
+@keyframes police-flash {
+  0% {
+    filter: drop-shadow(0 0 2px rgba(30, 174, 219, 0.7));
+  }
+  50% {
+    filter: drop-shadow(0 0 5px rgba(30, 174, 219, 1));
+    transform: translateY(-2px);
+  }
+  100% {
+    filter: drop-shadow(0 0 2px rgba(30, 174, 219, 0.7));
+  }
+}
+
+@keyframes fire-flash {
+  0% {
+    filter: drop-shadow(0 0 3px rgba(249, 115, 22, 0.7));
+  }
+  50% {
+    filter: drop-shadow(0 0 6px rgba(249, 115, 22, 1));
+    transform: rotate(-2deg);
+  }
+  100% {
+    filter: drop-shadow(0 0 3px rgba(249, 115, 22, 0.7));
+    transform: rotate(2deg);
+  }
+}
+
+/* Vehicle movement path effect */
+.vehicle-path {
+  stroke-dasharray: 5, 5;
+  animation: dash 1s linear infinite;
+  stroke-width: 2;
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: -10;
+  }
+}
