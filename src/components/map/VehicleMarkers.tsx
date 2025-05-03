@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Marker, Popup, useMap, Polyline } from 'react-leaflet';
 import { EmergencyVehicle } from '@/types/emergencyTypes';
@@ -30,7 +31,7 @@ const VehicleMarkers: React.FC<VehicleMarkersProps> = ({ vehicles }) => {
           // Add current position to path history if it's different
           pathHistory: vehicle.latitude !== animatedVehicles[vehicle.id].vehicle.latitude || 
                       vehicle.longitude !== animatedVehicles[vehicle.id].vehicle.longitude
-            ? [...animatedVehicles[vehicle.id].pathHistory.slice(-5), [vehicle.latitude, vehicle.longitude]]
+            ? [...animatedVehicles[vehicle.id].pathHistory.slice(-5), [vehicle.latitude, vehicle.longitude] as [number, number]]
             : animatedVehicles[vehicle.id].pathHistory
         };
       } else {
@@ -38,7 +39,7 @@ const VehicleMarkers: React.FC<VehicleMarkersProps> = ({ vehicles }) => {
           vehicle: vehicle,
           animating: false,
           originalPosition: [vehicle.latitude, vehicle.longitude] as [number, number],
-          pathHistory: [[vehicle.latitude, vehicle.longitude]]
+          pathHistory: [[vehicle.latitude, vehicle.longitude] as [number, number]]
         };
       }
     });
@@ -59,34 +60,38 @@ const VehicleMarkers: React.FC<VehicleMarkersProps> = ({ vehicles }) => {
       shuffledIds.forEach(vehicleId => {
         if (animatedVehicles[vehicleId].animating) return;
         
-        setAnimatedVehicles(prev => ({
-          ...prev,
+        setAnimatedVehicles(prevState => ({
+          ...prevState,
           [vehicleId]: {
-            ...prev[vehicleId],
+            ...prevState[vehicleId],
             animating: true
           }
         }));
         
         // Vary animation duration by vehicle type
         const animationDuration = 
-          prev[vehicleId].vehicle.type === 'ambulance' ? 3000 :
-          prev[vehicleId].vehicle.type === 'police' ? 2500 : 4000;
+          animatedVehicles[vehicleId].vehicle.type === 'ambulance' ? 3000 :
+          animatedVehicles[vehicleId].vehicle.type === 'police' ? 2500 : 4000;
           
         setTimeout(() => {
-          setAnimatedVehicles(prev => {
-            if (!prev[vehicleId]) return prev;
+          setAnimatedVehicles(prevState => {
+            if (!prevState[vehicleId]) return prevState;
+            
+            // Create a new position with small random offset
+            const newLatLng: [number, number] = [
+              prevState[vehicleId].vehicle.latitude + (Math.random() * 0.0003) * (Math.random() > 0.5 ? 1 : -1),
+              prevState[vehicleId].vehicle.longitude + (Math.random() * 0.0003) * (Math.random() > 0.5 ? 1 : -1)
+            ];
+            
             return {
-              ...prev,
+              ...prevState,
               [vehicleId]: {
-                ...prev[vehicleId],
+                ...prevState[vehicleId],
                 animating: false,
                 // Add a new point to path history when animation ends
                 pathHistory: [
-                  ...prev[vehicleId].pathHistory,
-                  [
-                    prev[vehicleId].vehicle.latitude + (Math.random() * 0.0003) * (Math.random() > 0.5 ? 1 : -1),
-                    prev[vehicleId].vehicle.longitude + (Math.random() * 0.0003) * (Math.random() > 0.5 ? 1 : -1)
-                  ]
+                  ...prevState[vehicleId].pathHistory,
+                  newLatLng
                 ].slice(-6) // Keep last 6 points
               }
             };
