@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from 'react';
 import { EmergencyVehicle } from '@/types/emergencyTypes';
 
@@ -6,6 +7,9 @@ type AnimatedVehicle = {
   animating: boolean;
   originalPosition: [number, number];
   pathHistory: Array<[number, number]>;
+  targetPosition?: [number, number]; // New field for smooth movement
+  moveStartTime?: number; // New field to track animation timing
+  moveDuration?: number; // How long the movement will take
 };
 
 export type AnimatedVehicleState = Record<string, AnimatedVehicle>;
@@ -13,6 +17,7 @@ export type AnimatedVehicleState = Record<string, AnimatedVehicle>;
 export const useVehicleAnimation = (vehicles: EmergencyVehicle[]) => {
   const [animatedVehicles, setAnimatedVehicles] = useState<AnimatedVehicleState>({});
   const animationRef = useRef<NodeJS.Timeout | null>(null);
+  const frameRef = useRef<number | null>(null);
   
   // Initialize and update animated vehicles when vehicle data changes
   useEffect(() => {
@@ -27,7 +32,7 @@ export const useVehicleAnimation = (vehicles: EmergencyVehicle[]) => {
           // Add current position to path history if it's different
           pathHistory: vehicle.latitude !== animatedVehicles[vehicle.id].vehicle.latitude || 
                       vehicle.longitude !== animatedVehicles[vehicle.id].vehicle.longitude
-            ? [...animatedVehicles[vehicle.id].pathHistory.slice(-5), [vehicle.latitude, vehicle.longitude] as [number, number]]
+            ? [...animatedVehicles[vehicle.id].pathHistory.slice(-8), [vehicle.latitude, vehicle.longitude] as [number, number]]
             : animatedVehicles[vehicle.id].pathHistory
         };
       } else {
@@ -43,7 +48,79 @@ export const useVehicleAnimation = (vehicles: EmergencyVehicle[]) => {
     setAnimatedVehicles(newAnimatedVehicles);
   }, [vehicles]);
   
-  // Animation interval effect
+  // Continuous animation frame for smooth movement
+  useEffect(() => {
+    const updatePositions = () => {
+      const now = Date.now();
+      let needsUpdate = false;
+      
+      setAnimatedVehicles(prevState => {
+        const newState = { ...prevState };
+        
+        Object.keys(newState).forEach(vehicleId => {
+          const vehicle = newState[vehicleId];
+          
+          // If vehicle is moving towards a target position
+          if (vehicle.targetPosition && vehicle.moveStartTime && vehicle.moveDuration) {
+            const elapsedTime = now - vehicle.moveStartTime;
+            const progress = Math.min(elapsedTime / vehicle.moveDuration, 1);
+            
+            if (progress < 1) {
+              // Vehicle still moving
+              needsUpdate = true;
+              
+              // Calculate new position with easing (ease-out cubic)
+              const easeProgress = 1 - Math.pow(1 - progress, 3);
+              const currentLat = vehicle.originalPosition[0] + 
+                (vehicle.targetPosition[0] - vehicle.originalPosition[0]) * easeProgress;
+              const currentLng = vehicle.originalPosition[1] + 
+                (vehicle.targetPosition[1] - vehicle.originalPosition[1]) * easeProgress;
+              
+              // Update current vehicle position
+              newState[vehicleId] = {
+                ...vehicle,
+                vehicle: {
+                  ...vehicle.vehicle,
+                  latitude: currentLat,
+                  longitude: currentLng
+                }
+              };
+            } else {
+              // Movement complete - update final position and clear animation properties
+              newState[vehicleId] = {
+                ...vehicle,
+                vehicle: {
+                  ...vehicle.vehicle,
+                  latitude: vehicle.targetPosition[0],
+                  longitude: vehicle.targetPosition[1]
+                },
+                animating: false,
+                targetPosition: undefined,
+                moveStartTime: undefined,
+                moveDuration: undefined
+              };
+            }
+          }
+        });
+        
+        return newState;
+      });
+      
+      if (needsUpdate) {
+        frameRef.current = requestAnimationFrame(updatePositions);
+      }
+    };
+    
+    frameRef.current = requestAnimationFrame(updatePositions);
+    
+    return () => {
+      if (frameRef.current) {
+        cancelAnimationFrame(frameRef.current);
+      }
+    };
+  }, []);
+  
+  // Animation interval effect to start new movements
   useEffect(() => {
     // More frequent animation updates for better dynamics
     const animationInterval = setInterval(() => {
@@ -56,54 +133,78 @@ export const useVehicleAnimation = (vehicles: EmergencyVehicle[]) => {
       );
       
       // Determine how many vehicles to animate
-      const numToAnimate = Math.min(Math.max(1, Math.floor(availableVehicles.length * 0.6)), 3);
+      const numToAnimate = Math.min(Math.max(2, Math.floor(availableVehicles.length * 0.7)), 5);
       const vehiclesToAnimate = [...availableVehicles].sort(() => Math.random() - 0.5).slice(0, numToAnimate);
       
       vehiclesToAnimate.forEach(vehicleId => {
         if (animatedVehicles[vehicleId].animating) return;
         
+        // Create dynamic movement patterns based on vehicle type
+        const vehicleType = animatedVehicles[vehicleId].vehicle.type;
+        const currentLat = animatedVehicles[vehicleId].vehicle.latitude;
+        const currentLng = animatedVehicles[vehicleId].vehicle.longitude;
+        
+        // Vary movement distances by vehicle type
+        let moveDistance = 0.0015; // Base movement distance
+        
+        if (vehicleType === 'ambulance') {
+          moveDistance = 0.0025; // Ambulances move faster/farther
+        } else if (vehicleType === 'police') {
+          moveDistance = 0.002; // Police move at medium speed
+        } else if (vehicleType === 'fire') {
+          moveDistance = 0.0015; // Fire trucks move slower
+        }
+        
+        // Create semi-realistic movement patterns
+        // 1. Sometimes follow roads (prefer cardinal directions)
+        // 2. Sometimes make turns (change one coordinate significantly)
+        // 3. Occasionally make diagonal movements (change both coordinates)
+        const movementType = Math.random();
+        
+        let targetLat = currentLat;
+        let targetLng = currentLng;
+        
+        if (movementType < 0.4) {
+          // Horizontal movement (east-west)
+          targetLng = currentLng + (moveDistance * (Math.random() > 0.5 ? 1 : -1));
+        } else if (movementType < 0.8) {
+          // Vertical movement (north-south)
+          targetLat = currentLat + (moveDistance * (Math.random() > 0.5 ? 1 : -1));
+        } else {
+          // Diagonal movement
+          targetLat = currentLat + (moveDistance * 0.7 * (Math.random() > 0.5 ? 1 : -1));
+          targetLng = currentLng + (moveDistance * 0.7 * (Math.random() > 0.5 ? 1 : -1));
+        }
+        
+        // Calculate movement duration based on distance and vehicle type
+        // This creates different speeds for different vehicle types
+        const distance = Math.sqrt(
+          Math.pow(targetLat - currentLat, 2) + Math.pow(targetLng - currentLng, 2)
+        );
+        
+        let baseDuration = 3000; // Base duration in milliseconds
+        if (vehicleType === 'ambulance') baseDuration = 2000; // Ambulances are faster
+        if (vehicleType === 'police') baseDuration = 2500; // Police is moderately fast
+        
+        const moveDuration = baseDuration * (distance / moveDistance) + (Math.random() * 500);
+        
         setAnimatedVehicles(prevState => ({
           ...prevState,
           [vehicleId]: {
             ...prevState[vehicleId],
-            animating: true
+            animating: true,
+            originalPosition: [currentLat, currentLng],
+            targetPosition: [targetLat, targetLng],
+            moveStartTime: Date.now(),
+            moveDuration: moveDuration,
+            pathHistory: [
+              ...prevState[vehicleId].pathHistory,
+              [currentLat, currentLng]
+            ].slice(-8)
           }
         }));
-        
-        // Vary animation duration by vehicle type with more dramatic variations
-        const animationDuration = 
-          animatedVehicles[vehicleId].vehicle.type === 'ambulance' ? 2000 + Math.random() * 1000 :
-          animatedVehicles[vehicleId].vehicle.type === 'police' ? 1800 + Math.random() * 700 : 
-          3000 + Math.random() * 1000;
-          
-        setTimeout(() => {
-          setAnimatedVehicles(prevState => {
-            if (!prevState[vehicleId]) return prevState;
-            
-            // Create new positions with more dynamic movement patterns
-            const moveDistance = prevState[vehicleId].vehicle.status === 'available' ? 0.0006 : 0.0002;
-            const directionBias = Math.random() > 0.7 ? 0.8 : 0.2; // Occasionally prefer specific directions
-            
-            const newLatLng: [number, number] = [
-              prevState[vehicleId].vehicle.latitude + (moveDistance * (Math.random() > directionBias ? 1 : -1)),
-              prevState[vehicleId].vehicle.longitude + (moveDistance * (Math.random() > directionBias ? 1 : -1))
-            ];
-            
-            return {
-              ...prevState,
-              [vehicleId]: {
-                ...prevState[vehicleId],
-                animating: false,
-                pathHistory: [
-                  ...prevState[vehicleId].pathHistory,
-                  newLatLng
-                ].slice(-8) // Keep more history points for better trails
-              }
-            };
-          });
-        }, animationDuration);
       });
-    }, 2000); // More frequent animations
+    }, 3000); // Start new movements every 3 seconds
     
     animationRef.current = animationInterval;
     
