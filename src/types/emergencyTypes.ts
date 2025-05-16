@@ -1,3 +1,4 @@
+
 // Types for emergency services
 export interface EmergencyService {
   id: string;
@@ -13,6 +14,9 @@ export interface EmergencyService {
   international_phone_number?: string;
   website?: string;
   address?: string;
+  // Add latitude and longitude to fix existing code that expects these fields
+  latitude?: number;
+  longitude?: number;
 }
 
 // Update the EmergencyVehicle interface to include distance

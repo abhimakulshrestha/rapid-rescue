@@ -1,6 +1,7 @@
 
 import { EmergencyService, EmergencyEvent } from '@/types/emergencyTypes';
-import { fetchNearbyPlaces, transformPlaceToEmergencyService } from './placesApi';
+import { fetchNearbyPlaces } from './google/googlePlacesApi';
+import { transformPlaceToEmergencyService } from './google/googlePlacesMapper';
 import { mockServices } from './mockServices';
 import { supabase } from '@/integrations/supabase/client';
 

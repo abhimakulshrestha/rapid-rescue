@@ -1,7 +1,6 @@
-
-import React, { useRef, useEffect } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, PerspectiveCamera, useGLTF, Environment } from '@react-three/drei';
+import React, { useRef, useState, useEffect } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { PerspectiveCamera, OrbitControls } from '@react-three/drei';
 import { useTheme } from '@/hooks/use-theme';
 import { Button } from '@/components/ui/button';
 import * as THREE from 'three';
