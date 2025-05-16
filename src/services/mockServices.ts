@@ -12,6 +12,8 @@ export const mockServices: EmergencyService[] = [
     name: 'AIIMS Hospital Delhi',
     phone: '011-2658-8500',
     distance: '2.3 km',
+    latitude: 28.6139, 
+    longitude: 77.2090
   },
   // Additional Indian hospitals
   {
@@ -20,6 +22,8 @@ export const mockServices: EmergencyService[] = [
     name: 'Safdarjung Hospital',
     phone: '011-2673-0000',
     distance: '3.9 km',
+    latitude: 28.5729,
+    longitude: 77.2090
   },
   {
     id: '12',
@@ -27,6 +31,8 @@ export const mockServices: EmergencyService[] = [
     name: 'Tata Memorial Hospital',
     phone: '022-2417-7000',
     distance: '7.2 km',
+    latitude: 19.0048,
+    longitude: 72.8435
   },
   {
     id: '13',
@@ -34,6 +40,8 @@ export const mockServices: EmergencyService[] = [
     name: 'Christian Medical College',
     phone: '0416-228-2010',
     distance: '9.5 km',
+    latitude: 12.9162,
+    longitude: 79.1325
   },
   // Police stations in India
   {
@@ -42,6 +50,8 @@ export const mockServices: EmergencyService[] = [
     name: 'Delhi Police Headquarters',
     phone: '100',
     distance: '3.2 km',
+    latitude: 28.6129,
+    longitude: 77.2295
   },
   {
     id: '7',
@@ -49,6 +59,8 @@ export const mockServices: EmergencyService[] = [
     name: 'Local Police Station',
     phone: '112',
     distance: '1.8 km',
+    latitude: 28.6354,
+    longitude: 77.2250
   },
   // Fire stations
   {
@@ -57,6 +69,8 @@ export const mockServices: EmergencyService[] = [
     name: 'Delhi Fire Service',
     phone: '101',
     distance: '4.5 km',
+    latitude: 28.6466,
+    longitude: 77.2073
   },
   // Electricity emergency
   {
@@ -65,6 +79,8 @@ export const mockServices: EmergencyService[] = [
     name: 'BSES Rajdhani Power Ltd',
     phone: '1800-419-3333',
     distance: '5.3 km',
+    latitude: 28.5495,
+    longitude: 77.2715
   },
   // Other emergency services
   {
@@ -73,5 +89,7 @@ export const mockServices: EmergencyService[] = [
     name: 'Disaster Management Authority',
     phone: '1077',
     distance: '6.1 km',
+    latitude: 28.6024,
+    longitude: 77.2178
   },
 ];

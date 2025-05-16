@@ -14,8 +14,8 @@ export interface EmergencyService {
   international_phone_number?: string;
   website?: string;
   address?: string;
-  latitude: number; // Making these required instead of optional
-  longitude: number;
+  latitude: number; // Required property
+  longitude: number; // Required property
 }
 
 // Update the EmergencyVehicle interface to include distance

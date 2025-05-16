@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { AlertCircle, Stethoscope, Shield, Flame, Zap, Phone } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -84,6 +85,8 @@ const EmergencyCategories: React.FC<EmergencyCategoriesProps> = ({
                   name: 'Emergency Services',
                   phone: '112',
                   distance: 'N/A',
+                  latitude: 0, // Adding the required properties
+                  longitude: 0
                 };
                 onCallService(emergencyService);
               }}

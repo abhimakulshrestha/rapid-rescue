@@ -6,10 +6,10 @@ type AnimatedVehicle = {
   vehicle: EmergencyVehicle;
   animating: boolean;
   originalPosition: [number, number];
-  pathHistory: Array<[number, number]>;
-  targetPosition?: [number, number]; // New field for smooth movement
-  moveStartTime?: number; // New field to track animation timing
-  moveDuration?: number; // How long the movement will take
+  pathHistory: Array<[number, number]>; // Ensure this is strictly a tuple array
+  targetPosition?: [number, number]; 
+  moveStartTime?: number; 
+  moveDuration?: number;
 };
 
 export type AnimatedVehicleState = Record<string, AnimatedVehicle>;
@@ -188,20 +188,23 @@ export const useVehicleAnimation = (vehicles: EmergencyVehicle[]) => {
         
         const moveDuration = baseDuration * (distance / moveDistance) + (Math.random() * 500);
         
-        setAnimatedVehicles(prevState => ({
-          ...prevState,
-          [vehicleId]: {
-            ...prevState[vehicleId],
-            animating: true,
-            originalPosition: [currentLat, currentLng],
-            targetPosition: [targetLat, targetLng],
-            moveStartTime: Date.now(),
-            moveDuration: moveDuration,
-            pathHistory: [
-              ...prevState[vehicleId].pathHistory,
-              [currentLat, currentLng]
-            ].slice(-8)
-          }
+        // Create a new object to ensure type compatibility
+        const updatedVehicle: AnimatedVehicle = {
+          ...animatedVehicles[vehicleId],
+          animating: true,
+          originalPosition: [currentLat, currentLng] as [number, number],
+          targetPosition: [targetLat, targetLng] as [number, number],
+          moveStartTime: Date.now(),
+          moveDuration: moveDuration,
+          pathHistory: [
+            ...animatedVehicles[vehicleId].pathHistory,
+            [currentLat, currentLng] as [number, number]
+          ].slice(-8) as [number, number][]
+        };
+        
+        setAnimatedVehicles(prev => ({
+          ...prev,
+          [vehicleId]: updatedVehicle
         }));
       });
     }, 3000); // Start new movements every 3 seconds
