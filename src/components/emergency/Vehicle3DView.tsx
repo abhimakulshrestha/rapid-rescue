@@ -69,10 +69,10 @@ function VehicleModel({ vehicleType, isAvailable }: { vehicleType: string, isAva
       <mesh ref={meshRef} castShadow receiveShadow scale={scale}>
         {geometry}
         <meshStandardMaterial 
-          color={color} 
+          color={color}
           metalness={0.6} 
           roughness={0.3} 
-          emissive={isAvailable ? color : '#000000'}
+          emissive={isAvailable ? color : "#000000"}
           emissiveIntensity={isAvailable ? 0.2 : 0}
         />
       </mesh>
@@ -94,7 +94,7 @@ function VehicleModel({ vehicleType, isAvailable }: { vehicleType: string, isAva
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]} receiveShadow>
         <planeGeometry args={[10, 10]} />
         <meshStandardMaterial 
-          color="#f0f0f0" 
+          color="#f0f0f0"
           metalness={0.2}
           roughness={0.8}
           transparent
