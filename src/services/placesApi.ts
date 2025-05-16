@@ -45,7 +45,7 @@ export function getEmergencyNumberByCategory(category: string): string {
 }
 
 /**
- * Fetch nearby places from Google Places API
+ * Fetch nearby places from Google Places API using a more reliable approach
  */
 export async function fetchNearbyPlaces(
   latitude: number,
@@ -54,24 +54,45 @@ export async function fetchNearbyPlaces(
   radius: number = 5000
 ): Promise<any[]> {
   try {
-    // Use actual location to get real nearby places
-    const response = await fetch(
-      `${CORS_PROXY}${encodeURIComponent(
-        `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${latitude},${longitude}&radius=${radius}&type=${type}&key=${GOOGLE_API_KEY}`
-      )}`
-    );
-    
-    if (!response.ok) {
-      throw new Error(`Failed to fetch ${type} services`);
+    // First try with CORS proxy
+    try {
+      const response = await fetch(
+        `${CORS_PROXY}${encodeURIComponent(
+          `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${latitude},${longitude}&radius=${radius}&type=${type}&key=${GOOGLE_API_KEY}`
+        )}`
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.status === 'OK' && data.results && data.results.length > 0) {
+          console.log(`Fetched ${type} services:`, data.results.length);
+          return data.results.slice(0, 5); // Limit to 5 results per type
+        }
+      }
+    } catch (error) {
+      console.warn(`CORS proxy approach failed for ${type}:`, error);
     }
     
-    const data = await response.json();
-    console.log(`Fetched ${type} services:`, data);
-    
-    if (data.status === 'OK' && data.results && data.results.length > 0) {
-      return data.results.slice(0, 5); // Limit to 5 results per type
+    // If CORS proxy fails, try direct fetch (might still fail due to CORS)
+    try {
+      const directResponse = await fetch(
+        `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${latitude},${longitude}&radius=${radius}&type=${type}&key=${GOOGLE_API_KEY}`,
+        { mode: 'cors' }
+      );
+      
+      if (directResponse.ok) {
+        const data = await directResponse.json();
+        
+        if (data.status === 'OK' && data.results && data.results.length > 0) {
+          return data.results.slice(0, 5);
+        }
+      }
+    } catch (error) {
+      console.warn(`Direct API call failed for ${type}:`, error);
     }
     
+    // Return empty array if both approaches fail
     return [];
   } catch (error) {
     console.error(`Error fetching ${type} places:`, error);
@@ -84,17 +105,39 @@ export async function fetchNearbyPlaces(
  */
 export async function fetchPlaceDetails(placeId: string): Promise<any> {
   try {
-    const detailsResponse = await fetch(
-      `${CORS_PROXY}${encodeURIComponent(
-        `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=formatted_phone_number,international_phone_number,website,formatted_address&key=${GOOGLE_API_KEY}`
-      )}`
-    );
-    
-    if (detailsResponse.ok) {
-      const detailsData = await detailsResponse.json();
-      if (detailsData.status === 'OK' && detailsData.result) {
-        return detailsData.result;
+    // First try with CORS proxy
+    try {
+      const detailsResponse = await fetch(
+        `${CORS_PROXY}${encodeURIComponent(
+          `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=formatted_phone_number,international_phone_number,website,formatted_address&key=${GOOGLE_API_KEY}`
+        )}`
+      );
+      
+      if (detailsResponse.ok) {
+        const detailsData = await detailsResponse.json();
+        if (detailsData.status === 'OK' && detailsData.result) {
+          return detailsData.result;
+        }
       }
+    } catch (error) {
+      console.warn('CORS proxy approach failed for place details:', error);
+    }
+    
+    // If CORS proxy fails, try direct fetch
+    try {
+      const directResponse = await fetch(
+        `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=formatted_phone_number,international_phone_number,website,formatted_address&key=${GOOGLE_API_KEY}`,
+        { mode: 'cors' }
+      );
+      
+      if (directResponse.ok) {
+        const detailsData = await directResponse.json();
+        if (detailsData.status === 'OK' && detailsData.result) {
+          return detailsData.result;
+        }
+      }
+    } catch (error) {
+      console.warn('Direct API call failed for place details:', error);
     }
     
     return {};
@@ -149,7 +192,11 @@ export async function transformPlaceToEmergencyService(
       console.error('Error fetching place details:', error);
     }
   }
-    
+  
+  // Add location coordinates
+  const latitude = place.geometry?.location?.lat;
+  const longitude = place.geometry?.location?.lng;
+  
   return {
     id: place.place_id || `place-${Math.random().toString(36).substring(2, 9)}`,
     category: category,
@@ -163,6 +210,8 @@ export async function transformPlaceToEmergencyService(
     formatted_phone_number: formattedPhoneNumber,
     international_phone_number: internationalPhoneNumber, 
     website: website,
-    address: address
+    address: address,
+    latitude: latitude,
+    longitude: longitude
   };
 }
