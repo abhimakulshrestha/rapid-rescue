@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { initiatePhoneCall } from '@/services/emergencyServices';
+import { emergencyDialer } from '@/services/emergencyServices';
 import { useToast } from '@/hooks/use-toast';
 import { useEmergencyVehicles } from '@/hooks/useEmergencyVehicles';
 import VehicleCard from './emergency/VehicleCard';
@@ -19,10 +19,10 @@ const EmergencyVehicles: React.FC<EmergencyVehiclesProps> = ({ userLocation }) =
 
   const handleCallVehicle = (phone: string) => {
     if (phone) {
-      initiatePhoneCall(phone);
+      emergencyDialer.call(phone);
       toast({
         title: 'Calling Emergency Vehicle',
-        description: `Initiating call to ${phone}`,
+        description: `Dialing ${phone}...`,
       });
     } else {
       toast({
@@ -48,7 +48,7 @@ const EmergencyVehicles: React.FC<EmergencyVehiclesProps> = ({ userLocation }) =
         </CardHeader>
         <CardContent className="p-6">
           <div className="flex justify-center py-8">
-            <div className="h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full"></div>
+            <div className="h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
           </div>
         </CardContent>
       </Card>

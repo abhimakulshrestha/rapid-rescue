@@ -1,3 +1,4 @@
+
 import { EmergencyService, EmergencyEvent } from '@/types/emergencyTypes';
 import { getRealLocationServices } from './realLocationServices';
 import { mockServices } from './mockServices';
@@ -55,7 +56,7 @@ export const logEmergencyEvent = async (event: EmergencyEvent): Promise<void> =>
 };
 
 /**
- * Function to actually initiate a phone call
+ * Function to initiate a direct phone call with enhanced functionality
  */
 export const initiatePhoneCall = (phoneNumber: string): void => {
   if (!phoneNumber) {
@@ -69,5 +70,29 @@ export const initiatePhoneCall = (phoneNumber: string): void => {
   // Use the tel: protocol to initiate a call
   window.location.href = `tel:${cleanNumber}`;
   
-  console.log(`Initiating call to: ${cleanNumber}`);
+  console.log(`Initiating direct call to: ${cleanNumber}`);
+};
+
+/**
+ * Enhanced emergency dialer with fallback options
+ */
+export const emergencyDialer = {
+  call: (phoneNumber: string) => {
+    try {
+      initiatePhoneCall(phoneNumber);
+    } catch (error) {
+      console.error('Error initiating call:', error);
+      // Fallback: Copy number to clipboard
+      navigator.clipboard.writeText(phoneNumber).then(() => {
+        console.log('Phone number copied to clipboard as fallback');
+      });
+    }
+  },
+  
+  callWithConfirmation: (phoneNumber: string, serviceName: string) => {
+    const confirmed = window.confirm(`Call ${serviceName} at ${phoneNumber}?`);
+    if (confirmed) {
+      initiatePhoneCall(phoneNumber);
+    }
+  }
 };

@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { EmergencyVehicle } from '@/types/emergencyTypes';
 import VehicleIcon from './VehicleIcon';
 import Vehicle3DView from './Vehicle3DView';
-import { motion, AnimatePresence } from 'framer-motion';
 
 interface VehicleCardProps {
   vehicle: EmergencyVehicle;
@@ -23,15 +22,17 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onCallVehicle }) => 
     : vehicle.type === 'police'
     ? 'from-blue-50 to-blue-100 border-blue-200'
     : 'from-orange-50 to-orange-100 border-orange-200';
+
+  const handleDirectCall = (phoneNumber: string) => {
+    if (phoneNumber) {
+      // Direct phone call without modal
+      window.location.href = `tel:${phoneNumber}`;
+      onCallVehicle(phoneNumber);
+    }
+  };
     
   return (
-    <motion.div 
-      layout
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      className={`border ${isAvailable ? 'border-2' : 'border'} rounded-lg overflow-hidden hover:shadow-md transition-all ${gradientClass}`}
-    >
+    <div className={`border ${isAvailable ? 'border-2' : 'border'} rounded-lg overflow-hidden hover:shadow-md transition-shadow ${gradientClass}`}>
       <div className="bg-gradient-to-r p-3 flex justify-between items-center">
         <div className="flex items-center gap-3">
           <div className={`p-2 rounded-full ${
@@ -74,7 +75,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onCallVehicle }) => 
               vehicle.type === 'police' ? 'bg-gradient-to-r from-blue-500 to-blue-600' :
               'bg-gradient-to-r from-orange-500 to-amber-600'
             }`}
-            onClick={() => onCallVehicle(vehicle.phone || '')}
+            onClick={() => handleDirectCall(vehicle.phone || '')}
           >
             <Phone className="h-4 w-4 mr-1" />
             Call
@@ -91,42 +92,40 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onCallVehicle }) => 
         </div>
       </div>
       
-      <AnimatePresence>
-        {expanded && (
-          <motion.div 
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="overflow-hidden"
-          >
-            <Vehicle3DView 
-              vehicleType={vehicle.type} 
-              isAvailable={isAvailable} 
-            />
-            
-            <div className="p-3 pt-0">
-              <div className="mt-2 space-y-2">
-                <p className="text-sm">
-                  <strong>Status:</strong> {isAvailable ? 
-                    <span className="text-green-600">Available for dispatch</span> : 
-                    <span className="text-orange-600">Currently on duty</span>
-                  }
-                </p>
-                {vehicle.phone && (
-                  <p className="text-sm">
-                    <strong>Emergency Contact:</strong> {vehicle.phone}
-                  </p>
-                )}
-                <p className="text-sm">
-                  <strong>Last Updated:</strong> {new Date(vehicle.last_updated || '').toLocaleTimeString()}
-                </p>
-              </div>
+      {expanded && (
+        <div className="overflow-hidden">
+          <Vehicle3DView 
+            vehicleType={vehicle.type} 
+            isAvailable={isAvailable} 
+          />
+          
+          <div className="p-3 pt-0">
+            <div className="mt-2 space-y-2">
+              <p className="text-sm">
+                <strong>Status:</strong> {isAvailable ? 
+                  <span className="text-green-600">Available for dispatch</span> : 
+                  <span className="text-orange-600">Currently on duty</span>
+                }
+              </p>
+              {vehicle.phone && (
+                <div className="text-sm">
+                  <strong>Emergency Contact:</strong> 
+                  <button 
+                    onClick={() => handleDirectCall(vehicle.phone)}
+                    className="ml-2 text-blue-600 hover:text-blue-800 underline"
+                  >
+                    {vehicle.phone}
+                  </button>
+                </div>
+              )}
+              <p className="text-sm">
+                <strong>Last Updated:</strong> {new Date(vehicle.last_updated || '').toLocaleTimeString()}
+              </p>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
