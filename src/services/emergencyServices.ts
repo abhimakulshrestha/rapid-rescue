@@ -1,7 +1,5 @@
-
 import { EmergencyService, EmergencyEvent } from '@/types/emergencyTypes';
-import { fetchNearbyPlaces } from './google/googlePlacesApi';
-import { transformPlaceToEmergencyService } from './google/googlePlacesMapper';
+import { getRealLocationServices } from './realLocationServices';
 import { mockServices } from './mockServices';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -13,36 +11,16 @@ export const getNearbyServices = async (
   longitude: number
 ): Promise<EmergencyService[]> => {
   try {
-    // Use Google Places API with different types to get real emergency services
-    const types = ['hospital', 'police', 'fire_station', 'pharmacy'];
-    let allResults: EmergencyService[] = [];
+    // Try to get real location-based services first
+    const realServices = await getRealLocationServices(latitude, longitude);
     
-    // Make parallel requests for different place types
-    const promises = types.map(async (type) => {
-      const places = await fetchNearbyPlaces(latitude, longitude, type);
-      
-      if (places && places.length > 0) {
-        // Transform Google Places API data to our EmergencyService format
-        return Promise.all(places.map(async (place: any) => {
-          return transformPlaceToEmergencyService(place, type, latitude, longitude);
-        }));
-      }
-      return [];
-    });
-    
-    // Wait for all requests to complete
-    const results = await Promise.all(promises);
-    
-    // Flatten the results array and remove empty arrays
-    allResults = results.flat().filter(Boolean);
-    
-    if (allResults.length > 0) {
-      console.log('Fetched real emergency services based on location:', allResults);
-      return allResults;
+    if (realServices.length > 0) {
+      console.log('Using real location-based emergency services:', realServices);
+      return realServices;
     }
     
-    // Fallback to mock data when the API doesn't return results
-    console.log('No results from Places API, using mock data');
+    // Fallback to mock data if real services unavailable
+    console.log('Real services unavailable, using mock data');
     return mockServices;
   } catch (error) {
     console.error('Error fetching nearby services:', error);

@@ -2,7 +2,7 @@
 import React, { useCallback, useState, useEffect, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import './map.css'; // Import our custom CSS
+import './map.css';
 import L from 'leaflet';
 import { supabase } from '@/integrations/supabase/client';
 import { EmergencyVehicle } from '@/types/emergencyTypes';
@@ -16,22 +16,27 @@ interface MapDisplayProps {
   location: { lat: number; lng: number } | null;
   loading: boolean;
   onMapReady: (map: L.Map) => void;
+  showVehicleTracking?: boolean;
 }
 
-const MapDisplay: React.FC<MapDisplayProps> = ({ location, loading, onMapReady }) => {
-  // Default location (centered on India)
+const MapDisplay: React.FC<MapDisplayProps> = ({ 
+  location, 
+  loading, 
+  onMapReady, 
+  showVehicleTracking = true 
+}) => {
   const defaultLocation: [number, number] = [20.5937, 78.9629];
   const zoomLevel = 5;
   const [vehicles, setVehicles] = useState<EmergencyVehicle[]>([]);
   const [mapKey, setMapKey] = useState<number>(0);
   
-  // Memoize the center location to prevent unnecessary re-renders
   const centerLocation = useMemo(() => 
     location ? [location.lat, location.lng] : defaultLocation,
   [location]);
 
-  // Fetch emergency vehicles
   useEffect(() => {
+    if (!showVehicleTracking) return;
+    
     const fetchVehicles = async () => {
       try {
         const { data, error } = await supabase
@@ -48,9 +53,9 @@ const MapDisplay: React.FC<MapDisplayProps> = ({ location, loading, onMapReady }
 
     fetchVehicles();
 
-    // Set up real-time subscription
+    // Real-time subscription for vehicle updates
     const channel = supabase
-      .channel('emergency-vehicles-map')
+      .channel('emergency-vehicles-map-tracking')
       .on(
         'postgres_changes',
         {
@@ -75,21 +80,18 @@ const MapDisplay: React.FC<MapDisplayProps> = ({ location, loading, onMapReady }
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [showVehicleTracking]);
 
-  // Memoize onMapReady to prevent unnecessary re-renders
   const handleMapReady = useCallback((map: L.Map) => {
     onMapReady(map);
   }, [onMapReady]);
   
-  // Force a re-mount of the map container when location changes significantly
   useEffect(() => {
     if (location) {
       setMapKey(prev => prev + 1);
     }
   }, [location?.lat?.toFixed(3), location?.lng?.toFixed(3)]);
 
-  // Early return pattern to simplify the component
   if (loading && !location) {
     return <MapLoading />;
   }
@@ -108,20 +110,31 @@ const MapDisplay: React.FC<MapDisplayProps> = ({ location, loading, onMapReady }
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         
-        {/* User location marker */}
-        {location && <Marker position={[location.lat, location.lng]} icon={DefaultIcon}>
-          <Popup>Your Location</Popup>
-        </Marker>}
+        {location && (
+          <Marker position={[location.lat, location.lng]} icon={DefaultIcon}>
+            <Popup>
+              <div className="text-center">
+                <strong>Your Location</strong>
+                <br />
+                <small>Emergency services will navigate here</small>
+              </div>
+            </Popup>
+          </Marker>
+        )}
         
-        {/* Emergency vehicle markers with animation */}
-        <VehicleMarkers vehicles={vehicles} />
+        {showVehicleTracking && <VehicleMarkers vehicles={vehicles} />}
         
-        {/* Map updater component to handle location changes */}
         <MapUpdater location={location} />
-        
-        {/* Map initializer component to handle map ready event */}
         <MapInitializer onMapReady={handleMapReady} />
       </MapContainer>
+      
+      {showVehicleTracking && vehicles.length > 0 && (
+        <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm rounded-lg p-2 shadow-lg">
+          <div className="text-xs font-medium text-gray-700">
+            Tracking {vehicles.length} emergency vehicle{vehicles.length !== 1 ? 's' : ''}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

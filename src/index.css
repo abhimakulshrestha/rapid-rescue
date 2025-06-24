@@ -105,6 +105,23 @@
   }
 
   .glass-effect {
-    @apply bg-white/80 backdrop-blur-sm border border-white/20;
+    @apply bg-white/90 backdrop-blur-sm border border-white/20 shadow-xl;
+  }
+
+  /* Vehicle tracking styles - no animations */
+  .vehicle-marker {
+    @apply drop-shadow-lg;
+  }
+  
+  .vehicle-path {
+    @apply opacity-70;
+  }
+  
+  .status-available {
+    @apply opacity-100;
+  }
+  
+  .status-busy {
+    @apply opacity-60;
   }
 }
