@@ -11,6 +11,8 @@ import DashboardMain from '@/components/dashboard/DashboardMain';
 import { useEmergencyServices } from '@/hooks/useEmergencyServices';
 import { useEmergencyContacts } from '@/hooks/useEmergencyContacts';
 import { useUserLocation } from '@/hooks/useUserLocation';
+import { Button } from '@/components/ui/button';
+import { Truck } from 'lucide-react';
 
 // Define view constants for dashboard sections
 const VIEWS = {
@@ -50,8 +52,12 @@ const Dashboard = () => {
 
   // Handle navigation between dashboard views
   const handleNavigationClick = useCallback((view: string) => {
-    setCurrentView(view);
-  }, []);
+    if (view === 'vehicles') {
+      navigate('/vehicles');
+    } else {
+      setCurrentView(view);
+    }
+  }, [navigate]);
 
   // Handle confirming an emergency call
   const onConfirmCall = useCallback(() => {
@@ -70,22 +76,37 @@ const Dashboard = () => {
       case VIEWS.DASHBOARD:
       default:
         return (
-          <DashboardMain
-            location={location}
-            services={services}
-            selectedCategory={selectedCategory}
-            emergencyContacts={emergencyContacts}
-            onLocationUpdate={handleLocationUpdate}
-            onSelectCategory={handleSelectCategory}
-            onCallService={handleCallService}
-            onCallEmergencyContact={handleCallEmergencyContact}
-          />
+          <>
+            <DashboardMain
+              location={location}
+              services={services}
+              selectedCategory={selectedCategory}
+              emergencyContacts={emergencyContacts}
+              onLocationUpdate={handleLocationUpdate}
+              onSelectCategory={handleSelectCategory}
+              onCallService={handleCallService}
+              onCallEmergencyContact={handleCallEmergencyContact}
+            />
+            
+            {/* Quick access to vehicles page */}
+            <div className="max-w-7xl mx-auto px-4 mt-6">
+              <div className="text-center">
+                <Button 
+                  onClick={() => navigate('/vehicles')}
+                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-3 text-lg shadow-lg"
+                >
+                  <Truck className="h-5 w-5 mr-2" />
+                  View Emergency Vehicles
+                </Button>
+              </div>
+            </div>
+          </>
         );
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen">
       <Header 
         userName={userName} 
         onLogout={signOut} 
@@ -93,7 +114,7 @@ const Dashboard = () => {
         currentView={currentView}
       />
       
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
+      <main className="flex-1">
         {renderCurrentView()}
       </main>
       

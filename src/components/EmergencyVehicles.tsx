@@ -5,9 +5,8 @@ import { initiatePhoneCall } from '@/services/emergencyServices';
 import { useToast } from '@/hooks/use-toast';
 import { useEmergencyVehicles } from '@/hooks/useEmergencyVehicles';
 import VehicleCard from './emergency/VehicleCard';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Filter } from 'lucide-react';
+import { Filter, Truck } from 'lucide-react';
 
 interface EmergencyVehiclesProps {
   userLocation: { latitude: number; longitude: number } | null;
@@ -40,13 +39,16 @@ const EmergencyVehicles: React.FC<EmergencyVehiclesProps> = ({ userLocation }) =
 
   if (isLoading) {
     return (
-      <Card className="bg-gradient-to-br from-slate-50 to-slate-100 border-none shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">Emergency Vehicles</CardTitle>
+      <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+        <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-lg">
+          <CardTitle className="flex items-center gap-2">
+            <Truck className="h-5 w-5" />
+            Emergency Vehicles
+          </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="flex justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <CardContent className="p-6">
+          <div className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
         </CardContent>
       </Card>
@@ -54,57 +56,68 @@ const EmergencyVehicles: React.FC<EmergencyVehiclesProps> = ({ userLocation }) =
   }
 
   return (
-    <Card className="bg-gradient-to-br from-slate-50 to-slate-100 border-none shadow-lg overflow-hidden">
-      <CardHeader className="bg-gradient-to-r from-slate-800 to-slate-900 text-white">
+    <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+      <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-lg">
         <div className="flex justify-between items-center">
-          <CardTitle className="text-xl font-bold text-white">Nearby Emergency Vehicles</CardTitle>
-          <div className="flex items-center space-x-2">
+          <CardTitle className="flex items-center gap-2">
+            <Truck className="h-5 w-5" />
+            Emergency Vehicles
+          </CardTitle>
+          <div className="flex items-center space-x-2 text-blue-100">
             <Filter size={16} />
-            <span className="text-sm">Filter:</span>
+            <span className="text-sm">Filter by type</span>
           </div>
         </div>
-        <Tabs defaultValue="all" className="mt-2" onValueChange={setVehicleType}>
-          <TabsList className="bg-slate-700/50 backdrop-blur-sm">
-            <TabsTrigger value="all" className="data-[state=active]:bg-white data-[state=active]:text-slate-900">
+      </CardHeader>
+      <CardContent className="p-6">
+        <Tabs defaultValue="all" className="mb-4" onValueChange={setVehicleType}>
+          <TabsList className="grid w-full grid-cols-4 bg-gray-100">
+            <TabsTrigger 
+              value="all" 
+              className="data-[state=active]:bg-white data-[state=active]:text-gray-900"
+            >
               All
             </TabsTrigger>
-            <TabsTrigger value="ambulance" className="data-[state=active]:bg-rose-500 data-[state=active]:text-white">
+            <TabsTrigger 
+              value="ambulance" 
+              className="data-[state=active]:bg-red-500 data-[state=active]:text-white"
+            >
               Ambulance
             </TabsTrigger>
-            <TabsTrigger value="police" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+            <TabsTrigger 
+              value="police" 
+              className="data-[state=active]:bg-blue-500 data-[state=active]:text-white"
+            >
               Police
             </TabsTrigger>
-            <TabsTrigger value="fire" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white">
+            <TabsTrigger 
+              value="fire" 
+              className="data-[state=active]:bg-orange-500 data-[state=active]:text-white"
+            >
               Fire
             </TabsTrigger>
           </TabsList>
         </Tabs>
-      </CardHeader>
-      <CardContent className="p-3 lg:p-4 bg-gradient-to-b from-gray-50 to-white">
+
         {filteredVehicles.length === 0 ? (
-          <div className="text-center py-8 bg-gray-50 rounded-md">
-            <p className="text-gray-500">No {vehicleType !== 'all' ? vehicleType : 'emergency'} vehicles found in your area</p>
+          <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+            <Truck className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-500 font-medium">
+              No {vehicleType !== 'all' ? vehicleType : 'emergency'} vehicles found in your area
+            </p>
+            <p className="text-gray-400 text-sm mt-1">
+              Emergency vehicles will appear here when they're nearby
+            </p>
           </div>
         ) : (
-          <div className="space-y-3">
-            <AnimatePresence>
-              {filteredVehicles.map((vehicle) => (
-                <motion.div
-                  key={vehicle.id}
-                  layout
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <VehicleCard 
-                    key={vehicle.id} 
-                    vehicle={vehicle} 
-                    onCallVehicle={handleCallVehicle} 
-                  />
-                </motion.div>
-              ))}
-            </AnimatePresence>
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {filteredVehicles.map((vehicle) => (
+              <VehicleCard 
+                key={vehicle.id} 
+                vehicle={vehicle} 
+                onCallVehicle={handleCallVehicle} 
+              />
+            ))}
           </div>
         )}
       </CardContent>

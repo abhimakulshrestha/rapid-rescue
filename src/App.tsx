@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
+import Vehicles from "./pages/Vehicles";
 import NotFound from "./pages/NotFound";
 import { useAuth } from "./contexts/AuthContext";
 
@@ -45,7 +46,14 @@ const AppRoutes = () => {
           </ProtectedRoute>
         } 
       />
-      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+      <Route 
+        path="/vehicles" 
+        element={
+          <ProtectedRoute>
+            <Vehicles />
+          </ProtectedRoute>
+        } 
+      />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
@@ -57,7 +65,7 @@ const App = () => (
       <TooltipProvider delayDuration={300}>
         <Toaster />
         <Sonner position="top-right" closeButton theme="light" richColors />
-        <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
+        <div className="min-h-screen">
           <BrowserRouter>
             <AppRoutes />
           </BrowserRouter>
